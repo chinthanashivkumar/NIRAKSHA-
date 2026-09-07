@@ -62,10 +62,29 @@ app.include_router(resources.router)
 async def startup_event():
     asyncio.create_task(simulate_live_data())
 
-@app.get("/")
-def read_root():
-    return {"message": "NIRAKSHA Landslide Early Warning System API v2.0 — ML-powered"}
+# Serve built frontend if present (for single-service full-stack deployment on Render)
+frontend_dist = Path(__file__).parent / "frontend" / "dist"
+if frontend_dist.exists():
+    from fastapi.responses import FileResponse
+    assets_dir = frontend_dist / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api") or full_path.startswith("uploads") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Not Found")
+        target_file = frontend_dist / full_path
+        if full_path and target_file.is_file():
+            return FileResponse(target_file)
+        return FileResponse(frontend_dist / "index.html")
+else:
+    @app.get("/")
+    def read_root():
+        return {"message": "NIRAKSHA Landslide Early Warning System API v2.0 — ML-powered"}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

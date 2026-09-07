@@ -38,6 +38,29 @@ STATION_STATES = {
     "Agartala": "Tripura"
 }
 
+STATION_ALIASES = {
+    "Tawang": ["tawang", "तवांग", "তাওয়াং", "তাৱাং"],
+    "Cherrapunji": ["cherrapunji", "cherra", "sohra", "चेरापूंजी", "চেরাপুঞ্জি", "চেৰাপুঞ্জী"],
+    "Shillong": ["shillong", "शिलांग", "শিলং", "শ্বিলং"],
+    "Tura": ["tura", "तुरा", "তুরা", "তুৰা"],
+    "Ziro": ["ziro", "ज़ीरो", "জিরো", "জিৰো"],
+    "Pasighat": ["pasighat", "पासीघाट", "পাসিঘাট"],
+    "Itanagar": ["itanagar", "ईटानगर", "ইটানগর", "ইটানগৰ"],
+    "Mangan": ["mangan", "मंगन", "মাঙ্গান", "মাংগান"],
+    "Gangtok": ["gangtok", "गंगटोक", "গ্যাংটক", "গেংটক"],
+    "Namchi": ["namchi", "नामची", "নামচি"],
+    "Kohima": ["kohima", "कोहिमा", "কোহিমা"],
+    "Dimapur": ["dimapur", "दीमापुर", "দিমাপুর", "দিমাপুৰ"],
+    "Aizawl": ["aizawl", "आइज़ोल", "আইজল"],
+    "Imphal": ["imphal", "इम्फाल", "ইম্ফল"],
+    "Churachandpur": ["churachandpur", "चुराचांदपुर", "চুড়াচাঁদপুর", "চুৰাচান্দপুৰ"],
+    "Guwahati": ["guwahati", "gauhati", "गुवाहाटी", "গুয়াহাটি", "গুৱাহাটী"],
+    "Silchar": ["silchar", "सिलचर", "শিলচর", "শিলচৰ"],
+    "Jorhat": ["jorhat", "जोरहाट", "যোরহাট", "যোৰহাট"],
+    "Dima Hasao": ["dima hasao", "haflong", "दीमा हसाओ", "ডিমা হাসাও"],
+    "Agartala": ["agartala", "अगरतला", "আগরতলা", "আগৰতলা"]
+}
+
 
 class ChatMessage(BaseModel):
     message: str
@@ -62,140 +85,101 @@ def normalize_language(raw_lang: Optional[str]) -> str:
     return "en"
 
 
-def format_station(s: Station) -> str:
-    state = getattr(s, 'state', None) or STATION_STATES.get(s.name, 'NER')
-    rainfall = getattr(s, 'current_rainfall', 0.0) or 0.0
-    moisture = getattr(s, 'soil_moisture', 0.0) or 0.0
-    pop = getattr(s, 'population', 0) or 0
+def find_mentioned_station(user_message: str, stations: list) -> Optional[Station]:
+    msg_lower = user_message.lower()
+    for s in stations:
+        aliases = STATION_ALIASES.get(s.name, [s.name.lower()])
+        for alias in aliases:
+            if alias.lower() in msg_lower:
+                return s
+    return None
+
+
+def format_station_summary(s: Station, lang: str = "en", evacuations: list = None) -> str:
+    name = s.name
+    state = getattr(s, 'state', None) or STATION_STATES.get(s.name, 'Northeast India')
     score = getattr(s, 'risk_score', 0.0) or 0.0
     level = getattr(s, 'risk_level', 'LOW') or 'LOW'
-    return f"- {s.name} ({state}): Risk={level} ({score:.1f}/100), Rain={rainfall:.1f}mm, SoilMoisture={moisture:.2f}, Population={pop:,}"
+    rain = getattr(s, 'current_rainfall', 0.0) or 0.0
+    moisture = getattr(s, 'soil_moisture', 0.0) or 0.0
+    pop = getattr(s, 'population', 0) or 0
+    slope = getattr(s, 'slope_angle', 30.0) or 30.0
+    road = getattr(s, 'nearest_road', 'Primary Highway')
+
+    evac = next((e for e in (evacuations or []) if getattr(e, 'station_id', None) == s.id), None)
+    camp_name = getattr(evac, 'nearest_camp_name', 'District Relief Centre') if evac else 'District Relief Centre'
+    primary_dist = getattr(evac, 'primary_route_distance_km', 0) or 0
+    primary_eta = getattr(evac, 'primary_route_eta_h', 0) or 0
+    route_info = f"{road} ({primary_dist:.1f} km, ETA: {primary_eta:.1f}h)" if primary_dist > 0 else road
+    shelter_info = camp_name if camp_name else 'District Community Relief Shelter'
+
+    if lang == "hi":
+        return (
+            f"### {name} ({state}) स्टेशन स्थिति एवं टेलीमेट्री रिपोर्ट\n\n"
+            f"* **जोखिम स्तर**: **{level}** (स्कोर: **{score:.1f}/100**)\n"
+            f"* **वर्तमान वर्षा**: **{rain:.1f} मिमी**\n"
+            f"* **मृदा नमी (Soil Moisture)**: **{moisture:.2f}**\n"
+            f"* **ढलान कोण (Slope)**: {slope:.1f}° | **निकटतम मार्ग**: {road}\n"
+            f"* **प्रभावित जनसंख्या**: {pop:,} नागरिक\n\n"
+            f"**सुरक्षा एवं परिचालन निर्देश:**\n"
+            f"{'⚠️ **अति-संवेदनशील क्षेत्र**: तुरंत नागरिकों को ' + shelter_info + ' में स्थानांतरित करें। मुख्य मार्ग: ' + route_info if level in ('CRITICAL', 'HIGH') else '✅ **सामान्य स्थिति**: वर्तमान में भूस्खलन का कोई तात्कालिक खतरा नहीं है। मानक निगरानी जारी रखें।'}\n\n"
+            f"*स्रोत: निरक्षा लाइव टेलीमेट्री*"
+        )
+    elif lang == "bn":
+        return (
+            f"### {name} ({state}) স্টেশন পর্যবেক্ষণ ও টেলিমেট্রি রিপোর্ট\n\n"
+            f"* **ঝুঁকির মাত্রা**: **{level}** (স্কোর: **{score:.1f}/100**)\n"
+            f"* **বর্তমান বৃষ্টিপাত**: **{rain:.1f} মিমি**\n"
+            f"* **মাটির আর্দ্রতা**: **{moisture:.2f}**\n"
+            f"* **পাহাড়ের ঢাল**: {slope:.1f}° | **নিকটবর্তী সড়ক**: {road}\n"
+            f"* **বাসিন্দা সংখ্যা**: {pop:,} জন\n\n"
+            f"**জরুরি নির্দেশনা:**\n"
+            f"{'⚠️ **সংকটজনক সতর্কতা**: বাসিন্দাদের অবিলম্বে ' + shelter_info + '-এ স্থানান্তর করুন। উদ্ধার রুট: ' + route_info if level in ('CRITICAL', 'HIGH') else '✅ **স্বাভাবিক পরিস্থিতি**: বর্তমানে এখানে ভূমিধসের তাৎক্ষণিক কোনো ঝুঁকি নেই। নিয়মিত পর্যবেক্ষণ জারি রাখুন।'}\n\n"
+            f"*উৎস: নিরীক্ষা লাইভ টেলিমেট্রি*"
+        )
+    elif lang == "as":
+        return (
+            f"### {name} ({state}) ষ্টেচন নিৰীক্ষণ আৰু টেলিমেট্ৰি প্ৰতিবেদন\n\n"
+            f"* **বিপদাশংকাৰ মাত্ৰা**: **{level}** (স্কোৰ: **{score:.1f}/100**)\n"
+            f"* **বৰ্তমান বৰষুণ**: **{rain:.1f} মিমি**\n"
+            f"* **মাটিৰ সেমেকা ভাব**: **{moisture:.2f}**\n"
+            f"* **পাহাৰীয়া ঢাল**: {slope:.1f}° | **ওচৰৰ পথ**: {road}\n"
+            f"* **জনসংখ্যা**: {pop:,} গৰাকী\n\n"
+            f"**পৰামৰ্শমূলক পদক্ষেপ:**\n"
+            f"{'⚠️ **অতি বিপদসংকুল এলেকা**: নাগৰিকসকলক অনতিপলমে ' + shelter_info + ' লৈ স্থানান্তৰ কৰক। স্থানান্তৰ পথ: ' + route_info if level in ('CRITICAL', 'HIGH') else '✅ **স্বাভাৱিক স্থিতি**: বৰ্তমান ভূমিস্খলনৰ কোনো তাৎক্ষণিক আশংকা নাই। নিয়মীয়া নিৰীক্ষণ অব্যাহত ৰাখক।'}\n\n"
+            f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰী*"
+        )
+    else:
+        return (
+            f"### {name} ({state}) Live Telemetry & Geotechnical Assessment\n\n"
+            f"* **Hazard Level**: **{level}** (Composite Risk Score: **{score:.1f}/100**)\n"
+            f"* **Precipitation Gauge**: **{rain:.1f} mm**\n"
+            f"* **Soil Moisture Index**: **{moisture:.2f}**\n"
+            f"* **Slope Angle**: {slope:.1f}° | **Primary Artery**: {road}\n"
+            f"* **Population Exposure**: {pop:,} citizens\n\n"
+            f"**Operational Directive:**\n"
+            f"{'🚨 **IMMEDIATE ACTION**: Critical saturation detected. Clear civilian habitations toward ' + shelter_info + ' via ' + route_info + '.' if level in ('CRITICAL', 'HIGH') else '✅ **STABLE CONDITIONS**: Telemetry indicators are within safe thresholds. Maintain baseline surveillance.'}\n\n"
+            f"*Source: NIRAKSHA Live Telemetry*"
+        )
 
 
-def format_alert(a: Alert) -> str:
-    pop = getattr(a, 'affected_population', 0) or 0
-    return f"- {a.station_name}: {a.risk_level} (Score {a.risk_score:.1f}) - {pop:,} citizens in danger zone"
-
-
-def generate_multilingual_fallback(user_message: str, stations: list, active_alerts: list, lang: str = "en") -> str:
-    """
-    Deterministic rule-based response in target language using live database telemetry.
-    Ensures NIRAKSHA never goes dark or fails to answer when external LLMs are unavailable.
-    """
+def generate_multilingual_fallback(user_message: str, stations: list, active_alerts: list, lang: str = "en", evacuations: list = None) -> str:
     msg_lower = user_message.lower()
 
-    # Telemetry metrics
+    # 1. Check if ANY specific station was mentioned
+    mentioned = find_mentioned_station(user_message, stations)
+    if mentioned:
+        return format_station_summary(mentioned, lang=lang, evacuations=evacuations)
+
     sorted_st = sorted(stations, key=lambda s: getattr(s, 'risk_score', 0.0) or 0.0, reverse=True)
     critical_st = [s for s in sorted_st if (getattr(s, 'risk_level', '') or '').upper() == "CRITICAL"]
     high_st = [s for s in sorted_st if (getattr(s, 'risk_level', '') or '').upper() == "HIGH"]
     top = sorted_st[0] if sorted_st else None
     second = sorted_st[1] if len(sorted_st) > 1 else None
-
-    # Specific station lookups
-    silchar = next((s for s in sorted_st if s.name.lower() == "silchar"), None)
-    tawang = next((s for s in sorted_st if s.name.lower() == "tawang"), None)
-    cherra = next((s for s in sorted_st if "cherra" in s.name.lower()), None)
-
     avg_rain = sum(getattr(s, 'current_rainfall', 0.0) or 0.0 for s in stations) / len(stations) if stations else 0.0
     total_pop = sum(getattr(a, 'affected_population', 0) or 0 for a in active_alerts)
 
-    # 1. SILCHAR SPECIFIC INQUIRY
-    if "silchar" in msg_lower or "শিলচৰ" in msg_lower or "শিলচর" in msg_lower or "सिलचर" in msg_lower:
-        s_score = silchar.risk_score if silchar else 27.9
-        s_rain = silchar.current_rainfall if silchar else 11.9
-        s_level = silchar.risk_level if silchar else "LOW"
-
-        if lang == "hi":
-            return (
-                f"### सिलचर (Silchar) स्टेशन स्थिति रिपोर्ट\n"
-                f"- **जोखिम स्तर**: {s_level} (स्कोर: {s_score:.1f}/100)\n"
-                f"- **वर्तमान वर्षा**: {s_rain:.1f} मिमी (सामान्य वर्षा)\n"
-                f"- **मिट्टी की नमी**: {getattr(silchar, 'soil_moisture', 0.22):.2f}\n"
-                f"- **विश्लेषण**: सिलचर वर्तमान में कम (LOW) जोखिम क्षेत्र में है। यहां भूस्खलन का कोई तात्कालिक खतरा नहीं है।\n"
-                f"- **सिफारिश**: सामान्य निगरानी जारी रखें। आपातकालीन संसाधनों को गंभीर क्षेत्रों (जैसे तवांग और चेरापूंजी) में प्राथमिकता दें।\n\n"
-                f"*स्रोत: निरक्षा लाइव टेलीमेट्री*"
-            )
-        elif lang == "bn":
-            return (
-                f"### শিলচর (Silchar) স্টেশন পর্যবেক্ষণ রিপোর্ট\n"
-                f"- **ঝুঁকির মাত্রা**: {s_level} (স্কোর: {s_score:.1f}/100)\n"
-                f"- **বর্তমান বৃষ্টিপাত**: {s_rain:.1f} মিমি (স্বাভাবিক)\n"
-                f"- **মাটির আর্দ্রতা**: {getattr(silchar, 'soil_moisture', 0.22):.2f}\n"
-                f"- **পর্যবেক্ষণ**: শিলচর বর্তমানে নিম্ন (LOW) ঝুঁকি অঞ্চলে রয়েছে। এখানে তাৎক্ষণিক কোনো ভূমিধসের বিপদ নেই।\n"
-                f"- **সুপারিশ**: রুটিন পর্যবেক্ষণ অব্যাহত রাখুন এবং জরুরি সরঞ্জামাদি সংকটজনক অঞ্চলগুলোতে পাঠান।\n\n"
-                f"*উৎস: নিরীক্ষা লাইভ টেলিমেট্রি*"
-            )
-        elif lang == "as":
-            return (
-                f"### শিলচৰ (Silchar) ষ্টেচন নিৰীক্ষণ প্ৰতিবেদন\n"
-                f"- **বিপদাশংকাৰ মাত্ৰা**: {s_level} (স্কোৰ: {s_score:.1f}/100)\n"
-                f"- **বৰ্তমান বৰষুণ**: {s_rain:.1f} মিমি (স্বাভাৱিক)\n"
-                f"- **মাটিৰ সেমেকা ভাব**: {getattr(silchar, 'soil_moisture', 0.22):.2f}\n"
-                f"- **বিশ্লেষণ**: শিলচৰ বৰ্তমান নিম্ন (LOW) বিপদ মণ্ডলত আছে। ইয়াত ভূমিস্খলনৰ কোনো তাৎক্ষণিক আশংকা নাই।\n"
-                f"- **পৰামৰ্শ**: নিয়মীয়া নিৰীক্ষণ অক্ষুণ্ণ ৰাখক আৰু সংকটজনক অঞ্চলসমূহত সজাগতা বৃদ্ধি কৰক।\n\n"
-                f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰি*"
-            )
-        else:
-            return (
-                f"### Silchar Station Telemetry Report\n"
-                f"- **Risk Level**: {s_level} (Composite Score: {s_score:.1f}/100)\n"
-                f"- **Current Precipitation**: {s_rain:.1f} mm (Normal range)\n"
-                f"- **Soil Moisture**: {getattr(silchar, 'soil_moisture', 0.22):.2f}\n"
-                f"- **Status Assessment**: Silchar is currently assessed as LOW risk with stable geological slope conditions and minimal precipitation.\n"
-                f"- **Action Recommendation**: Maintain baseline telemetry monitoring; divert rapid emergency logistics toward critical sectors (Tawang & Cherrapunji).\n\n"
-                f"*Source: NIRAKSHA live telemetry*"
-            )
-
-    # 2. HIGHEST RISK / STATUS / OVERVIEW
-    if any(k in msg_lower for k in ["highest", "risk", "status", "critical", "danger", "स्थिति", "ঝুঁকি", "বিপদ"]):
-        top_name = top.name if top else "Tawang"
-        top_score = top.risk_score if top else 81.6
-        top_rain = top.current_rainfall if top else 247.3
-        sec_name = second.name if second else "Cherrapunji"
-        sec_score = second.risk_score if second else 79.9
-
-        if lang == "hi":
-            return (
-                f"### पूर्वोत्तर भारत भूस्खलन निगरानी स्थिति\n"
-                f"- **सर्वोच्च जोखिम क्षेत्र**: **{top_name}** (जोखिम स्कोर: {top_score:.1f}/100, वर्षा: {top_rain:.1f} मिमी) - अत्यंत गंभीर (CRITICAL)\n"
-                f"- **द्वितीय संवेदनशील क्षेत्र**: **{sec_name}** (स्कोर: {sec_score:.1f}/100) - गंभीर (CRITICAL)\n"
-                f"- **गंभीर सेक्टर**: कुल {len(critical_st)} स्टेशन गंभीर और {len(high_st)} स्टेशन उच्च जोखिम में हैं।\n"
-                f"- **सक्रिय चेतावनियां**: {len(active_alerts)} चेतावनी क्षेत्र, जिसमें {total_pop:,} नागरिक प्रभावित क्षेत्र में हैं।\n"
-                f"- **कार्रवाई संस्तुति**: {top_name} और {sec_name} में तुरंत निकासी मार्ग सक्रिय करें और एनडीआरएफ/एसडीआरएफ टीमों को संवेदनशील ढलानों पर तैनात करें।\n\n"
-                f"*स्रोत: निरक्षा लाइव टेलीमेट्री*"
-            )
-        elif lang == "bn":
-            return (
-                f"### উত্তর-পূর্ব ভারত ভূমিধস পর্যবেক্ষণ পরিস্থিতি\n"
-                f"- **সর্বোচ্চ ঝুঁকিপূর্ণ অঞ্চল**: **{top_name}** (ঝুঁকি স্কোর: {top_score:.1f}/100, বৃষ্টিপাত: {top_rain:.1f} মিমি) - সংকটজনক (CRITICAL)\n"
-                f"- **দ্বিতীয় ঝুঁকিপূর্ণ অঞ্চল**: **{sec_name}** (ঝুঁকি স্কোর: {sec_score:.1f}/100) - সংকটজনক (CRITICAL)\n"
-                f"- **সংকটজনক সেক্টর**: উত্তর-পূর্বে মোট {len(critical_st)}টি স্টেশন চরম এবং {len(high_st)}টি স্টেশন উচ্চ ঝুঁকিতে রয়েছে।\n"
-                f"- **সতর্কতা অবস্থা**: {len(active_alerts)}টি সক্রিয় সতর্কতা জারি রয়েছে, মোট {total_pop:,} জন নাগরিক বিপদসীমায় আছেন।\n"
-                f"- **জরুরি পদক্ষেপ**: {top_name} এবং {sec_name}-এ অবিলম্বে উদ্ধারকারী দল মোতায়েন করুন এবং বিকল্প পরিবহন পথ প্রস্তুত রাখুন।\n\n"
-                f"*উৎস: নিরীক্ষা লাইভ টেলিমেট্রি*"
-            )
-        elif lang == "as":
-            return (
-                f"### উত্তৰ-পূৰ্বাঞ্চল ভূমিস্খলন নিৰীক্ষণ স্থিতি\n"
-                f"- **সৰ্বাধিক বিপদজনক এলেকা**: **{top_name}** (বিপদ স্কোৰ: {top_score:.1f}/100, বৰষুণ: {top_rain:.1f} মিমি) - অতি জটিল (CRITICAL)\n"
-                f"- **দ্বিতীয় সংবেদনশীল অঞ্চল**: **{sec_name}** (বিপদ স্কোৰ: {sec_score:.1f}/100) - অতি জটিল (CRITICAL)\n"
-                f"- **সংকটজনক ষ্টেচন**: মুঠ {len(critical_st)} টা ষ্টেচন জটিল আৰু {len(high_st)} টা ষ্টেচন উচ্চ বিপদসীমাত আছে।\n"
-                f"- **সক্ৰিয় সতৰ্কবাৰ্তা**: {len(active_alerts)} টা অঞ্চলত সতৰ্কবাৰ্তা বলবৎ আছে ({total_pop:,} গৰাকী নাগৰিক প্ৰভাৱিত)।\n"
-                f"- **পৰামৰ্শমূলক পদক্ষেপ**: {top_name} আৰু {sec_name} ত জৰুৰীভাৱে উদ্ধাৰকাৰী দল আৰু সাহায্য শিবিৰ সক্ৰিয় কৰক।\n\n"
-                f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰি*"
-            )
-        else:
-            return (
-                f"### NIRAKSHA Regional Landslide Telemetry Status\n"
-                f"- **Highest Threat Zone**: **{top_name}** (Composite Risk: {top_score:.1f}/100, Rainfall: {top_rain:.1f} mm) — CRITICAL\n"
-                f"- **Secondary Threat Sector**: **{sec_name}** (Risk Score: {sec_score:.1f}/100) — CRITICAL\n"
-                f"- **Regional Threat Profile**: {len(critical_st)} stations at CRITICAL risk, {len(high_st)} stations at HIGH risk across 8 NER states.\n"
-                f"- **Active Emergency Alerts**: {len(active_alerts)} sectors active affecting approximately {total_pop:,} citizens.\n"
-                f"- **Operational Directive**: Mobilize NDRF/SDRF emergency personnel to {top_name} and {sec_name} corridors; verify primary evacuation route clearance.\n\n"
-                f"*Source: NIRAKSHA live telemetry*"
-            )
-
-    # 3. RAINFALL SPECIFIC INQUIRY
+    # 2. RAINFALL SPECIFIC INQUIRY
     if any(k in msg_lower for k in ["rain", "precipitation", "वर्षा", "বৃষ্টি", "বৰষুণ"]):
         top_rain_st = max(stations, key=lambda s: getattr(s, 'current_rainfall', 0.0) or 0.0, default=None)
         r_name = top_rain_st.name if top_rain_st else "Tawang"
@@ -203,149 +187,148 @@ def generate_multilingual_fallback(user_message: str, stations: list, active_ale
 
         if lang == "hi":
             return (
-                f"### वर्षा एवं ढलान आर्द्रता रिपोर्ट\n"
-                f"- **अधिकतम वर्षा स्टेशन**: **{r_name}** ({r_val:.1f} मिमी)\n"
-                f"- **पूर्वोत्तर क्षेत्रीय औसत वर्षा**: {avg_rain:.1f} मिमी\n"
-                f"- **उच्च संतृप्ति क्षेत्र**: चेरापूंजी और तवांग में भारी मानसूनी वर्षा दर्ज की गई है, जिससे मिट्टी की संतृप्ति अत्यधिक उच्च हो चुकी है।\n"
-                f"- **सिफारिश**: 100 मिमी से अधिक वर्षा वाले पर्वतीय मार्गों पर भूस्खलन अवरोध की संभावना के कारण वाहनों की आवाजाही नियंत्रित करें।\n\n"
+                f"### वर्षा एवं भू-जल विज्ञान रिपोर्ट\n\n"
+                f"* **अधिकतम वर्षा स्टेशन**: **{r_name}** ({r_val:.1f} मिमी)\n"
+                f"* **क्षेत्रीय औसत वर्षा**: {avg_rain:.1f} मिमी (पूर्वोत्तर के 20 स्टेशनों में)\n"
+                f"* **अत्यधिक संतृप्त ढलानें**: भारी मानसूनी वर्षा के कारण पहाड़ी ढलानों पर मिट्टी की जल-धारण क्षमता समाप्त हो चुकी है।\n"
+                f"* **सिफारिश**: 100 मिमी से अधिक वर्षा वाले पर्वतीय मार्गों पर यातायात नियंत्रित करें।\n\n"
                 f"*स्रोत: निरक्षा लाइव टेलीमेट्री*"
             )
         elif lang == "bn":
             return (
-                f"### বৃষ্টিপাত ও মাটির আর্দ্রতা রিপোর্ট\n"
-                f"- **সর্বাধিক বৃষ্টিপাত স্টেশন**: **{r_name}** ({r_val:.1f} মিমি)\n"
-                f"- **আঞ্চলিক গড় বৃষ্টিপাত**: {avg_rain:.1f} মিমি\n"
-                f"- **উচ্চ আর্দ্রতা অঞ্চল**: চেরাপুঞ্জি ও তাওয়াং অঞ্চলে অবিরাম ভারী বৃষ্টির কারণে পাহাড়ি ঢালের মাটির ধারণক্ষমতা হ্রাস পেয়েছে।\n"
-                f"- **সুপারিশ**: পাহাড়ি মহাসড়কে ভারী যানবাহন চলাচল সীমিত করুন এবং নদী তীরবর্তী এলাকায় সতর্কতা জারি রাখুন।\n\n"
+                f"### বৃষ্টিপাত ও ভূ-প্রাকৃতিক রিপোর্ট\n\n"
+                f"* **সর্বাধিক বৃষ্টিপাত স্টেশন**: **{r_name}** ({r_val:.1f} মিমি)\n"
+                f"* **আঞ্চলিক গড় বৃষ্টিপাত**: {avg_rain:.1f} মিমি (২০টি স্টেশনে)\n"
+                f"* **ঝুঁকিপূর্ণ এলাকা**: অতিবৃষ্টির কারণে পাহাড়ি ঢালের মাটির বাঁধন দুর্বল হয়েছে।\n"
+                f"* **সুপারিশ**: ঝুঁকিপূর্ণ মহাসড়কে ভারী যানবাহন চলাচল সীমিত করুন।\n\n"
                 f"*উৎস: নিরীক্ষা লাইভ টেলিমেট্রি*"
             )
         elif lang == "as":
             return (
-                f"### বৰষুণ আৰু মাটিৰ স্থিতি প্ৰতিবেদন\n"
-                f"- **সৰ্বাধিক বৰষুণ হোৱা ষ্টেচন**: **{r_name}** ({r_val:.1f} মিমি)\n"
-                f"- **উত্তৰ-পূবৰ গড় বৰষুণ**: {avg_rain:.1f} মিমি\n"
-                f"- **বিপদজনক পাহাৰীয়া ঢাল**: চেৰাপুঞ্জী আৰু তাৱাং অঞ্চলত ধাৰাসাৰ বৰষুণৰ ফলত ভূমিস্খলনৰ সম্ভাৱনা অতি বৃদ্ধি পাইছে।\n"
-                f"- **পৰামৰ্শ**: বিপদসংকুল পথসমূহত যান-বাহন চলাচল নিয়ন্ত্ৰণ কৰক আৰু উদ্ধাৰকাৰী দল সষ্টম ৰাখক।\n\n"
-                f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰি*"
+                f"### বৰষুণ আৰু ভূ-প্ৰাকৃতিক প্ৰতিবেদন\n\n"
+                f"* **সৰ্বাধিক বৰষুণ হোৱা ষ্টেচন**: **{r_name}** ({r_val:.1f} মিমি)\n"
+                f"* **উত্তৰ-পূবৰ গড় বৰষুণ**: {avg_rain:.1f} মিমি\n"
+                f"* **বিপদজনক পাহাৰীয়া অঞ্চল**: ধাৰাসাৰ বৰষুণৰ ফলত ভূমিস্খলনৰ আশংকা তীব্ৰ হৈছে।\n"
+                f"* **পৰামৰ্শ**: পাহাৰীয়া পথসমূহত সতৰ্কতা অৱলম্বন কৰক।\n\n"
+                f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰী*"
             )
         else:
             return (
-                f"### Precipitation & Hydrological Telemetry Report\n"
-                f"- **Peak Rainfall Station**: **{r_name}** ({r_val:.1f} mm recorded)\n"
-                f"- **Regional Mean Precipitation**: {avg_rain:.1f} mm across NER stations\n"
-                f"- **High Pore-Water Pressure Zones**: Tawang and Cherrapunji sensors indicate high slope pore saturation exceeding geotechnical safety thresholds.\n"
-                f"- **Operational Recommendation**: Enforce road traffic curfews along vulnerable highland passes and prepare rapid earth-moving machinery.\n\n"
-                f"*Source: NIRAKSHA live telemetry*"
+                f"### Precipitation & Hydrological Telemetry Report\n\n"
+                f"* **Peak Rainfall Station**: **{r_name}** ({r_val:.1f} mm recorded)\n"
+                f"* **Regional Mean Rainfall**: {avg_rain:.1f} mm across 20 monitored mountain stations\n"
+                f"* **Pore-Water Saturation**: Critical stations exceed slope stability thresholds due to sustained monsoon inflow.\n"
+                f"* **Recommendation**: Restrict transit along active highland corridors.\n\n"
+                f"*Source: NIRAKSHA Live Telemetry*"
             )
 
-    # 4. EVACUATION / EMERGENCY PROCEDURES
-    if any(k in msg_lower for k in ["evacuat", "shelter", "camp", "emergency", "निकासी", "উদ্ধার", "স্থানান্তৰ", "সাহায্য"]):
+    # 3. EVACUATION / EMERGENCY PROTOCOLS
+    if any(k in msg_lower for k in ["evacuat", "shelter", "camp", "emergency", "sop", "route", "मार्ग", "निकासी", "উদ্ধার", "স্থানান্তৰ", "সাহায্য"]):
+        top_name = top.name if top else "Tawang"
         if lang == "hi":
             return (
-                f"### आपातकालीन निकासी एवं राहत शिविर प्रोटोकॉल\n"
-                f"- **प्राथमिकता सेक्टर**: तवांग (Tawang) और चेरापूंजी (Cherrapunji) के नागरिक तुरंत चिन्हित आश्रय स्थलों की ओर जाएं।\n"
-                f"- **निकासी मार्ग**: प्रत्येक स्टेशन के लिए प्राथमिक व वैकल्पिक मार्ग प्रणाली में सक्रिय हैं। मुख्य मार्ग अवरुद्ध होने पर 12 किमी वैकल्पिक मार्ग का उपयोग करें।\n"
-                f"- **राहत शिविर**: जिला राहत शिविरों में भोजन, पेयजल और चिकित्सा दल तैनात किए जा चुके हैं।\n"
-                f"- **आपातकालीन कार्रवाई**: नजदीकी जिला आपदा प्रबंधन नियंत्रण कक्ष (DDMA) से तत्काल संपर्क बनाए रखें।\n\n"
+                f"### आपातकालीन निकासी एवं राहत शिविर मानक संचालन प्रक्रिया (SOP)\n\n"
+                f"* **प्राथमिकता निकासी क्षेत्र**: **{top_name}** (गंभीर जोखिम)\n"
+                f"* **निकासी मार्ग**: प्रत्येक स्टेशन के लिए प्राथमिक व वैकल्पिक मार्ग चिन्हित हैं।\n"
+                f"* **राहत शिविर व्यवस्था**: जिला राहत केंद्रों में राशन, स्वच्छ पेयजल और चिकित्सा किट तैनात किए गए हैं।\n"
+                f"* **संपर्क**: जिला आपदा नियंत्रण कक्ष (1077 / NDRF) तुरंत सक्रिय करें।\n\n"
                 f"*स्रोत: निरक्षा लाइव टेलीमेट्री*"
             )
         elif lang == "bn":
             return (
-                f"### জরুরি স্থানান্তর ও উদ্ধার শিবির প্রোটোকল\n"
-                f"- **জরুরি স্থান**: তাওয়াং (Tawang) এবং চেরাপুঞ্জি (Cherrapunji) অঞ্চলের বাসিন্দাদের নিকটস্থ শিবিরে স্থানান্তরের নির্দেশ দেওয়া হয়েছে।\n"
-                f"- **উদ্ধার রুট**: প্রতিটি স্টেশনের জন্য নির্ধারিত প্রাথমিক ও বিকল্প রুট সক্রিয় রয়েছে। মূল পথ অবরুদ্ধ হলে বিকল্প করিডোর ব্যবহার করুন।\n"
-                f"- **ত্রাণ শিবির**: স্থানীয় ত্রাণ কেন্দ্রগুলোতে জরুরি খাদ্য, জল এবং প্রাথমিক চিকিৎসা প্রস্তুত রয়েছে।\n"
-                f"- **সুপারিশ**: জেলা দুর্যোগ ব্যবস্থাপনা কর্তৃপক্ষের সাথে সার্বক্ষণিক যোগাযোগ বজায় রাখুন।\n\n"
+                f"### জরুরি স্থানান্তর ও উদ্ধার শিবির প্রোটোকল\n\n"
+                f"* **শীর্ষ অগ্রাধিকার ক্ষেত্র**: **{top_name}** (সংকটজনক ঝুঁকি)\n"
+                f"* **উদ্ধার রুট**: প্রতিটি স্টেশনের জন্য বিকল্প ও নিরাপদ রুট নির্ধারিত রয়েছে।\n"
+                f"* **ত্রাণ শিবির**: স্থানীয় আশ্রয় কেন্দ্রগুলোতে খাদ্য ও চিকিৎসা দল প্রস্তুত আছে।\n"
+                f"* **জরুরি যোগাযোগ**: জেলা দুর্যোগ ব্যবস্থাপনা সেলে যোগাযোগ করুন।\n\n"
                 f"*উৎস: নিরীক্ষা লাইভ টেলিমেট্রি*"
             )
         elif lang == "as":
             return (
-                f"### জৰুৰীকালীন স্থানান্তৰ আৰু সাহায্য শিবিৰ প্ৰটোকল\n"
-                f"- **প্ৰাথমিক অঞ্চল**: তাৱাং (Tawang) আৰু চেৰাপুঞ্জী (Cherrapunji) অঞ্চলৰ বাসিন্দাসকলক সুৰক্ষিত স্থানলৈ যোৱাৰ নিৰ্দেশ দিয়া হৈছে।\n"
-                f"- **স্থানান্তৰ পথ**: প্ৰতিটো ষ্টেচনৰ বাবে মুখ্য আৰু বিকল্প পথ উপলব্ধ কৰা হৈছে। মুখ্য পথত বাধা পালে বিকল্প পথ ব্যৱহাৰ কৰক।\n"
-                f"- **সাহায্য শিবিৰ**: নিৰ্ধাৰিত শিবিৰসমূহত ঔষধ আৰু খাদ্য সামগ্ৰী মজুত ৰখা হৈছে।\n"
-                f"- **পৰামৰ্শ**: জিলা দুৰ্যোগ ব্যৱস্থাপনা কৰ্তৃপক্ষৰ সৈতে তৎক্ষণাৎ যোগাযোগ ৰাখক।\n\n"
-                f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰি*"
+                f"### জৰুৰীকালীন স্থানান্তৰ আৰু সাহায্য শিবিৰ প্ৰটোকল\n\n"
+                f"* **প্ৰাথমিক এলেকা**: **{top_name}** (অতি জটিল বিপদাশংকা)\n"
+                f"* **স্থানান্তৰ পথ**: মুখ্য আৰু বিকল্প নিৰাপদ পথ মুকলি ৰখা হৈছে।\n"
+                f"* **সাহায্য শিবিৰ**: শিবিৰসমূহত ঔষধ আৰু খাদ্য সামগ্ৰী মজুত আছে।\n"
+                f"* **যোগাযোগ**: জিলা দুৰ্যোগ নিয়ন্ত্ৰণ কক্ষৰ সৈতে যোগাযোগ ৰাখক।\n\n"
+                f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰী*"
             )
         else:
             return (
-                f"### Emergency Evacuation & Shelter Logistics\n"
-                f"- **High-Priority Sectors**: Immediate evacuation triggered for vulnerable civilian zones in Tawang and Cherrapunji.\n"
-                f"- **Route Allocation**: Dedicated primary and secondary evacuation corridors are mapped in the Station Detail panel; diversion routes available if primary arteries are blocked.\n"
-                f"- **Relief Infrastructure**: Designated relief camps are pre-allocated with medical supplies and emergency rations.\n"
-                f"- **Operational Protocol**: Maintain active UHF/VHF and satellite communication lines with state Emergency Operations Centers (EOC).\n\n"
-                f"*Source: NIRAKSHA live telemetry*"
+                f"### Emergency Evacuation & Standard Operating Procedures\n\n"
+                f"* **High-Priority Evacuation Sector**: **{top_name}** (Highest Threat Level)\n"
+                f"* **Corridor Clearance**: Dual-route corridors (Primary Highway + Diversion) assigned for all vulnerable sectors.\n"
+                f"* **Relief Logistics**: Designated shelters pre-stocked with emergency medical kits and rations.\n"
+                f"* **Field Protocol**: Maintain constant radio contact with State Emergency Operations Centers.\n\n"
+                f"*Source: NIRAKSHA Live Telemetry*"
             )
 
-    # 5. GENERAL DEFAULT IN TARGET LANGUAGE
+    # 4. HIGHEST RISK / GENERAL REGIONAL THREAT
     top_name = top.name if top else "Tawang"
     top_score = top.risk_score if top else 81.6
+    top_rain = top.current_rainfall if top else 247.3
+    sec_name = second.name if second else "Cherrapunji"
+    sec_score = second.risk_score if second else 79.9
+
     if lang == "hi":
         return (
-            f"### निरक्षा (NIRAKSHA) पूर्वोत्तर भारत भूस्खलन निगरानी\n"
-            f"- **सक्रिय निगरानी स्टेशन**: 8 पूर्वोत्तर राज्यों में कुल {len(stations)} स्टेशन सक्रिय हैं।\n"
-            f"- **वर्तमान स्थिति**: {len(critical_st)} स्टेशन गंभीर (CRITICAL) और {len(high_st)} उच्च जोखिम में हैं।\n"
-            f"- **शीर्ष जोखिम क्षेत्र**: **{top_name}** (जोखिम स्कोर: {top_score:.1f}/100, भारी वर्षा)। सिलचर (Silchar) सामान्य व कम जोखिम में है।\n"
-            f"- **क्षेत्रीय वर्षा**: औसत {avg_rain:.1f} मिमी वर्षा दर्ज की गई है।\n"
-            f"- **सिफारिश**: आपदा नियंत्रण कक्ष 24 घंटे सतर्क रहें और फील्ड रिपोर्ट के माध्यम से किसी भी दरार की तुरंत सूचना दें।\n\n"
+            f"### पूर्वोत्तर भारत भूस्खलन निगरानी स्थिति\n\n"
+            f"* **सर्वोच्च जोखिम क्षेत्र**: **{top_name}** (स्कोर: **{top_score:.1f}/100**, वर्षा: **{top_rain:.1f} मिमी**) - अत्यंत गंभीर (CRITICAL)\n"
+            f"* **द्वितीय संवेदनशील क्षेत्र**: **{sec_name}** (स्कोर: **{sec_score:.1f}/100**)\n"
+            f"* **सक्रिय चेतावनियां**: {len(active_alerts)} अलर्ट क्षेत्र ({total_pop:,} नागरिक प्रभावित)\n"
+            f"* **क्षेत्रीय स्थिति**: 8 पूर्वोत्तर राज्यों के 20 स्टेशनों की लाइव मॉनिटरिंग जारी है।\n"
+            f"* **कार्रवाई संस्तुति**: {top_name} में तुरंत निकासी मार्ग सक्रिय करें और NDRF/SDRF टीमों को तैनात रखें।\n\n"
             f"*स्रोत: निरक्षा लाइव टेलीमेट्री*"
         )
     elif lang == "bn":
         return (
-            f"### নিরীক্ষা (NIRAKSHA) উত্তর-পূর্ব ভারত ভূমিধস নজরদারি\n"
-            f"- **সক্রিয় পর্যবেক্ষণ স্টেশন**: ৮টি রাজ্যে মোট {len(stations)}টি স্টেশন কার্যকর রয়েছে।\n"
-            f"- **বর্তমান পরিস্থিতি**: {len(critical_st)}টি স্টেশন সংকটজনক (CRITICAL) এবং {len(high_st)}টি উচ্চ ঝুঁকিতে রয়েছে।\n"
-            f"- **সর্বোচ্চ ঝুঁকিপূর্ণ অঞ্চল**: **{top_name}** (ঝুঁকি স্কোর: {top_score:.1f}/100)। শিলচর (Silchar) বর্তমানে স্বাভাবিক ও নিম্ন ঝুঁকিতে রয়েছে।\n"
-            f"- **আঞ্চলিক বৃষ্টিপাত**: গড় {avg_rain:.1f} মিমি বৃষ্টিপাত রেকর্ড করা হয়েছে।\n"
-            f"- **সুপারিশ**: জেলা কন্ট্রোল রুম সার্বক্ষণিক সতর্ক থাকুন এবং ফিল্ড রিপোর্টের মাধ্যমে নতুন ফাটলের তথ্য প্রদান করুন।\n\n"
+            f"### উত্তর-পূর্ব ভারত ভূমিধস নজরদারি রিপোর্ট\n\n"
+            f"* **সর্বোচ্চ ঝুঁকিপূর্ণ অঞ্চল**: **{top_name}** (স্কোর: **{top_score:.1f}/100**, বৃষ্টি: **{top_rain:.1f} মিমি**) - সংকটজনক (CRITICAL)\n"
+            f"* **দ্বিতীয় সংবেদনশীল অঞ্চল**: **{sec_name}** (স্কোর: **{sec_score:.1f}/100**)\n"
+            f"* **সক্রিয় সতর্কতা**: {len(active_alerts)}টি সেক্টরে জরুরি সতর্কতা জারি ({total_pop:,} জন নাগরিক ঝুঁকিতে)\n"
+            f"* **পর্যবেক্ষণ**: ৮টি রাজ্যের ২০টি পার্বত্য স্টেশনে লাইভ সেন্সর কার্যকর রয়েছে।\n"
+            f"* **জরুরি পদক্ষেপ**: {top_name} এলাকায় উদ্ধারকারী দল প্রস্তুত রাখুন এবং বিকল্প রুট সক্রিয় করুন।\n\n"
             f"*উৎস: নিরীক্ষা লাইভ টেলিমেট্রি*"
         )
     elif lang == "as":
         return (
-            f"### নিৰীক্ষা (NIRAKSHA) উত্তৰ-পূৰ্বাঞ্চল ভূমিস্খলন নিয়ন্ত্ৰণ কক্ষ\n"
-            f"- **সক্ৰিয় ষ্টেচন**: ৮ খন ৰাজ্যত মুঠ {len(stations)} টা নিৰীক্ষণ ষ্টেচন কাৰ্যক্ষম হৈ আছে।\n"
-            f"- **সাম্প্ৰতিক স্থিতি**: {len(critical_st)} টা ষ্টেচন সংকটজনক (CRITICAL) আৰু {len(high_st)} টা উচ্চ বিপদসীমাত আছে।\n"
-            f"- **শীৰ্ষ বিপদজনক অঞ্চল**: **{top_name}** (বিপদ স্কোৰ: {top_score:.1f}/100)। শিলচৰ (Silchar) বৰ্তমান সম্পূৰ্ণ নিয়ন্ত্ৰণত আৰু নিম্ন বিপদসীমাত আছে।\n"
-            f"- **গড় বৰষুণ**: অঞ্চলটোত গড় {avg_rain:.1f} মিমি বৰষুণ হোৱা দেখা গৈছে।\n"
-            f"- **পৰামৰ্শ**: দুৰ্যোগ ব্যৱস্থাপনা নিয়ন্ত্ৰণ কক্ষ ২৪ ঘণ্টাই সষ্টম থাকক আৰু তথ্য সংগ্ৰহ অব্যাহত ৰাখক।\n\n"
-            f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰি*"
+            f"### উত্তৰ-পূৰ্বাঞ্চল ভূমিস্খলন নিৰীক্ষণ স্থিতি\n\n"
+            f"* **সৰ্বাধিক বিপদজনক এলেকা**: **{top_name}** (স্কোৰ: **{top_score:.1f}/100**, বৰষুণ: **{top_rain:.1f} মিমি**) - অতি জটিল (CRITICAL)\n"
+            f"* **দ্বিতীয় সংবেদনশীল অঞ্চল**: **{sec_name}** (স্কোৰ: **{sec_score:.1f}/100**)\n"
+            f"* **সক্ৰিয় সতৰ্কবাৰ্তা**: {len(active_alerts)} টা অঞ্চলত সতৰ্কবাৰ্তা বলবৎ আছে ({total_pop:,} গৰাকী নাগৰিক প্ৰভাৱিত)।\n"
+            f"* **পৰামৰ্শ**: {top_name} ত জৰুৰীভাৱে উদ্ধাৰকাৰী দল আৰু সাহায্য শিবিৰ সক্ৰিয় কৰক।\n\n"
+            f"*উৎস: নিৰীক্ষা লাইভ টেলিমেট্ৰী*"
         )
     else:
         return (
-            f"### NIRAKSHA Disaster Decision Support Overview\n"
-            f"- **Network Coverage**: Monitoring {len(stations)} active telemetry stations across all 8 North-Eastern states.\n"
-            f"- **Severity Breakdown**: {len(critical_st)} stations at CRITICAL alert, {len(high_st)} at HIGH risk; Silchar remains at LOW risk ({silchar.risk_score if silchar else 27.9:.1f}/100).\n"
-            f"- **Peak Vulnerability**: **{top_name}** leads regional hazard indicators with a composite score of {top_score:.1f}/100.\n"
-            f"- **Regional Mean Precipitation**: {avg_rain:.1f} mm recorded in the preceding observation window.\n"
-            f"- **Operational Recommendation**: Maintain constant telemetry polling and instruct field personnel to log slope displacements via the Field Reports panel.\n\n"
-            f"*Source: NIRAKSHA live telemetry*"
+            f"### NIRAKSHA Regional Landslide Telemetry Status\n\n"
+            f"* **Highest Threat Sector**: **{top_name}** (Composite Risk: **{top_score:.1f}/100**, Rainfall: **{top_rain:.1f} mm**) — CRITICAL\n"
+            f"* **Secondary Threat Zone**: **{sec_name}** (Risk Score: **{sec_score:.1f}/100**)\n"
+            f"* **Active Alerts**: {len(active_alerts)} sectors active affecting approximately {total_pop:,} citizens across 8 NER states.\n"
+            f"* **Operational Directive**: Mobilize NDRF/SDRF emergency personnel to {top_name} corridors; verify primary evacuation route clearance.\n\n"
+            f"*Source: NIRAKSHA Live Telemetry*"
         )
 
 
 LANGUAGE_DIRECTIVES = {
     "en": (
-        "Respond in clear, professional English for disaster decision-support.\n"
+        "Respond in professional English for disaster decision-support.\n"
         "Format using clean Markdown with bold bullet points and clear headings.\n"
-        "Always cite accurate telemetry figures from the provided real-time data."
+        "Directly answer the user's specific question using exact real-time numbers from the telemetry table."
     ),
     "hi": (
-        "CRITICAL LANGUAGE RULE: You MUST respond STRICTLY in Hindi using authentic Devanagari script (हिन्दी).\n"
-        "DO NOT use English or Latin script words except for standard station names (e.g. तवांग / Tawang, सिलचर / Silchar) and metric units (मिमी, %). \n"
-        "NEVER respond in English even if the user question is in English. The user's chosen language is Hindi.\n"
-        "Format cleanly in Markdown with bold bullet points and clear headings."
+        "CRITICAL LANGUAGE RULE: Respond STRICTLY in Hindi using authentic Devanagari script (हिन्दी).\n"
+        "Use accurate disaster terminology (e.g. भूस्खलन, चेतावनी, वर्षा, निकासी, राहत शिविर, जोखिम स्कोर).\n"
+        "Directly answer the user's specific question using exact real-time numbers from the telemetry table."
     ),
     "bn": (
-        "CRITICAL LANGUAGE RULE: You MUST respond STRICTLY in Bengali using authentic Bengali script (বাংলা).\n"
-        "DO NOT use English or Latin script words except for standard station names (e.g. তাওয়াং / Tawang, শিলচর / Silchar) and metric units (মিমি, %). \n"
-        "NEVER respond in English even if the user question is in English. The user's chosen language is Bengali.\n"
-        "Format cleanly in Markdown with bold bullet points and clear headings."
+        "CRITICAL LANGUAGE RULE: Respond STRICTLY in Bengali using authentic Bengali script (বাংলা).\n"
+        "Use accurate disaster terminology (e.g. ভূমিধস, সতর্কতা, বৃষ্টিপাত, স্থানান্তর, ত্রাণ শিবির, ঝুঁকি স্কোর).\n"
+        "Directly answer the user's specific question using exact real-time numbers from the telemetry table."
     ),
     "as": (
-        "CRITICAL LANGUAGE RULE: You MUST respond STRICTLY in Assamese using authentic Assamese script (অসমীয়া).\n"
-        "DO NOT respond in English or Bengali. Use authentic Assamese characters like ৰ (ra) and ৱ (wa) and disaster terms like ভূমিস্খলন, সতৰ্কবাৰ্তা, সাহায্য শিবিৰ, বৰষুণ.\n"
-        "You may preserve standard station names (e.g. তাৱাং / Tawang, শিলচৰ / Silchar) and metric units (মিমি, %).\n"
-        "NEVER respond in English even if the user question is in English. The user's chosen language is Assamese.\n"
-        "Format cleanly in Markdown with bold bullet points and clear headings."
+        "CRITICAL LANGUAGE RULE: Respond STRICTLY in Assamese using authentic Assamese script (অসমীয়া).\n"
+        "Use authentic Assamese characters like ৰ and ৱ and disaster terms (e.g. ভূমিস্খলন, সতৰ্কবাৰ্তা, স্থানান্তৰ, সাহায্য শিবিৰ).\n"
+        "Directly answer the user's specific question using exact real-time numbers from the telemetry table."
     )
 }
 
@@ -367,24 +350,35 @@ async def chat(body: ChatMessage):
         }
         return {"response": fallback_empty.get(lang, fallback_empty["en"]), "source": "system", "language": lang}
 
-    # Fetch live telemetry from database
+    # Fetch live telemetry and evacuation plans from database
     db = SessionLocal()
     try:
         stations = db.query(Station).all()
         active_alerts = db.query(Alert).filter(Alert.status == "active").all()
+        evacuations = db.query(Evacuation).all()
     except Exception as e:
         logger.error(f"DB query error: {e}")
-        stations, active_alerts = [], []
+        stations, active_alerts, evacuations = [], [], []
     finally:
         db.close()
 
-    # Sort stations so highest risk appear first
     sorted_stations = sorted(stations, key=lambda s: getattr(s, 'risk_score', 0.0) or 0.0, reverse=True)
-    station_lines = [format_station(s) for s in sorted_stations[:20]]
-    alert_lines = [format_alert(a) for a in active_alerts[:15]]
+    station_lines = []
+    for s in sorted_stations:
+        state = getattr(s, 'state', None) or STATION_STATES.get(s.name, 'NER')
+        rain = getattr(s, 'current_rainfall', 0.0) or 0.0
+        moisture = getattr(s, 'soil_moisture', 0.0) or 0.0
+        pop = getattr(s, 'population', 0) or 0
+        score = getattr(s, 'risk_score', 0.0) or 0.0
+        level = getattr(s, 'risk_level', 'LOW') or 'LOW'
+        slope = getattr(s, 'slope_angle', 30.0) or 30.0
+        road = getattr(s, 'nearest_road', 'Highway')
+        station_lines.append(
+            f"- {s.name} ({state}): Level={level}, Score={score:.1f}/100, Rain={rain:.1f}mm, Moisture={moisture:.2f}, Slope={slope:.1f}°, Pop={pop:,}, Road={road}"
+        )
 
     critical = [s.name for s in sorted_stations if (getattr(s, 'risk_level', '') or '').upper() == "CRITICAL"]
-    high = [s for s in sorted_stations if (getattr(s, 'risk_level', '') or '').upper() == "HIGH"]
+    high = [s.name for s in sorted_stations if (getattr(s, 'risk_level', '') or '').upper() == "HIGH"]
     top = sorted_stations[0] if sorted_stations else None
     total_pop = sum(getattr(a, 'affected_population', 0) or 0 for a in active_alerts)
     avg_rain = sum(getattr(s, 'current_rainfall', 0.0) or 0.0 for s in stations) / len(stations) if stations else 0.0
@@ -392,30 +386,27 @@ async def chat(body: ChatMessage):
     lang_directive = LANGUAGE_DIRECTIVES.get(lang, LANGUAGE_DIRECTIVES["en"])
 
     system_context = f"""You are NIRAKSHA AI, the official Landslide Disaster Early Warning Decision Support Assistant for North-Eastern India (NER).
-You assist district disaster commissioners, NDMA, SDRF, and civil defense rescue teams make rapid, life-saving decisions.
+You assist district disaster commissioners, NDMA, SDRF, and civil defense rescue teams with 100% accurate, real-time telemetry.
 
 {lang_directive}
 
-STRICT TELEMETRY GROUND TRUTH (REAL-TIME AS OF NOW FROM DATABASE):
-- Total Monitored Stations: {len(stations)} across all 8 NER states
-- Critical Severity Sectors: {', '.join(critical) if critical else 'None'}
-- Top Threat Zone: {top.name if top else 'Tawang'} (Score: {top.risk_score if top else 81.6:.1f}/100, Rain: {top.current_rainfall if top else 247.3:.1f} mm)
-- Silchar Status: LOW risk (Score: 27.9/100, Rain: 11.9 mm). Silchar is NOT at critical risk. Tawang and Cherrapunji are the CRITICAL sectors.
-- Active Emergency Alerts: {len(active_alerts)} (Affecting {total_pop:,} civilians)
+REAL-TIME TELEMETRY GROUND TRUTH (DIRECTLY FROM DATABASE):
+- Total Monitored Stations: {len(stations)} across all 8 North-Eastern states
+- Highest Risk Threat Zone: {top.name if top else 'Tawang'} (Score: {top.risk_score if top else 94.7:.1f}/100, Rain: {top.current_rainfall if top else 259.0:.1f} mm)
+- Critical Severity Stations: {', '.join(critical) if critical else 'None'}
+- High Severity Stations: {', '.join(high) if high else 'None'}
+- Active Emergency Alerts: {len(active_alerts)} (Total affected population: {total_pop:,})
 - Regional Mean Rainfall: {avg_rain:.1f} mm
 
-STATION-LEVEL TELEMETRY (SORTED BY RISK SCORE DESCENDING):
+ALL 20 MONITORED STATIONS & LIVE DATA:
 {chr(10).join(station_lines)}
 
-ACTIVE EMERGENCY ALERTS:
-{chr(10).join(alert_lines) if alert_lines else 'No active emergency alerts currently recorded'}
-
-RESPONSE INSTRUCTIONS:
-1. ALWAYS respect the chosen language ({lang.upper()}). Write fluently in that language's native script.
-2. Quote accurate metrics (risk scores, rainfall, population) from the telemetry ground truth above. Never hallucinate inverted risk levels.
-3. Structure with concise Markdown bullet points and bold highlights.
-4. End with an actionable operational recommendation for field rescue or administrative teams.
-5. Keep the total length around 80 to 140 words.
+CRITICAL INSTRUCTIONS:
+1. Directly answer the user's specific query. If they ask about a specific station (e.g. Gangtok, Silchar, Tawang, Shillong), look up its exact row in the table above and give its exact metrics.
+2. If they ask for the highest risk station, state {top.name if top else 'Tawang'} with its exact score and rainfall.
+3. If they ask for evacuation protocols, explain the immediate route clearance and relief camp guidelines.
+4. Structure your response with clean Markdown headers and bold bullet points.
+5. End with an actionable operational directive for field or rescue units.
 """
 
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
@@ -429,10 +420,8 @@ RESPONSE INSTRUCTIONS:
         for model in candidate_models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
-            # Construct Gemini contents with conversation history
             contents = []
             if body.conversation_history:
-                # Include last 6 conversation turns
                 recent_history = body.conversation_history[-6:]
                 for turn in recent_history:
                     role = "user" if turn.get("role") in ("user", "human") else "model"
@@ -443,7 +432,6 @@ RESPONSE INSTRUCTIONS:
                             "parts": [{"text": content_text.strip()}]
                         })
 
-            # Append current turn
             contents.append({
                 "role": "user",
                 "parts": [{"text": user_message}]
@@ -470,7 +458,6 @@ RESPONSE INSTRUCTIONS:
                             parts = candidates[0]["content"].get("parts", [])
                             if parts and "text" in parts[0]:
                                 raw_text = parts[0]["text"].strip()
-                                # Clean any thought tags
                                 clean_text = re.sub(r'<thought>.*?</thought>', '', raw_text, flags=re.DOTALL).strip()
                                 if clean_text:
                                     return {
@@ -482,14 +469,14 @@ RESPONSE INSTRUCTIONS:
                     else:
                         logger.warning(f"Gemini {model} returned HTTP {resp.status_code}: {resp.text[:120]}")
                         if resp.status_code == 429:
-                            logger.info("Gemini quota reached (429). Switching immediately to telemetry fallback.")
+                            logger.info("Gemini quota reached (429). Switching to telemetry fallback.")
                             break
             except Exception as e:
                 logger.warning(f"Gemini {model} exception: {e}")
 
     # Deterministic telemetry fallback if Gemini call fails, times out, or key is absent
     logger.info("Using deterministic multilingual telemetry engine.")
-    fallback_text = generate_multilingual_fallback(user_message, stations, active_alerts, lang=lang)
+    fallback_text = generate_multilingual_fallback(user_message, stations, active_alerts, lang=lang, evacuations=evacuations)
     return {
         "response": fallback_text,
         "source": "telemetry_fallback",

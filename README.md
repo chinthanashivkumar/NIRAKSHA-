@@ -3,6 +3,11 @@
 > **Smart India Hackathon (SIH) 2026 | Ministry of Development of North Eastern Region (MDoNER)**  
 > Real-time IoT/GIS Telemetry, Machine Learning Hazard Forecasting, Google Gemini-Powered Multilingual AI Decision Support & Tactical Evacuation Routing across the 8 North-Eastern States of India.
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-niraksha--2.onrender.com-00C7B7?style=for-the-badge&logo=render&logoColor=white)](https://niraksha-2.onrender.com/)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/chinthanashivkumar/NIRAKSHA-)
+
+🚀 **Live Web Application**: [https://niraksha-2.onrender.com/](https://niraksha-2.onrender.com/)
+
 ---
 
 ## 📌 Overview

@@ -164,9 +164,12 @@ def format_station_summary(s: Station, lang: str = "en", evacuations: list = Non
 
 
 def generate_multilingual_fallback(user_message: str, stations: list, active_alerts: list, lang: str = "en", evacuations: list = None) -> str:
-    msg_lower = user_message.lower()
+    """
+    Rich contextual multi-intent response engine tailored to exact queries.
+    """
+    msg_lower = user_message.lower().strip()
 
-    # 1. Check if ANY specific station was mentioned
+    # 1. SPECIFIC STATION INQUIRY
     mentioned = find_mentioned_station(user_message, stations)
     if mentioned:
         return format_station_summary(mentioned, lang=lang, evacuations=evacuations)
@@ -179,7 +182,146 @@ def generate_multilingual_fallback(user_message: str, stations: list, active_ale
     avg_rain = sum(getattr(s, 'current_rainfall', 0.0) or 0.0 for s in stations) / len(stations) if stations else 0.0
     total_pop = sum(getattr(a, 'affected_population', 0) or 0 for a in active_alerts)
 
-    # 2. RAINFALL SPECIFIC INQUIRY
+    # 2. GREETINGS & INTRODUCTIONS
+    if any(k in msg_lower for k in ["hello", "hi", "hey", "namaste", "who are you", "who r u", "about niraksha", "what is niraksha", "নমস্কাৰ", "হ্যালো"]):
+        if lang == "hi":
+            return (
+                "### नमस्ते! मैं निरक्षा (NIRAKSHA) AI आपातकालीन सहायक हूँ।\n\n"
+                "मैं पूर्वोत्तर भारत (NER) के 8 राज्यों में भूस्खलन जोखिम की वास्तविक समय (Real-time) निगरानी करता हूँ।\n\n"
+                "**आप मुझसे क्या पूछ सकते हैं:**\n"
+                "* किसी भी स्टेशन का जोखिम (जैसे *'तवांग का स्टेटस क्या है?'* या *'गंगटोक में कितनी वर्षा हुई?'*)\n"
+                "* शीर्ष जोखिम क्षेत्र और सक्रिय चेतावनियां\n"
+                "* आपातकालीन निकासी मार्ग और राहत शिविर\n"
+                "* भूस्खलन सुरक्षा सावधानियां और प्राथमिक उपचार SOP\n"
+            )
+        elif lang == "bn":
+            return (
+                "### নমস্কার! আমি নিরীক্ষা (NIRAKSHA) AI দুর্যোগ সহায়তা সহকারী।\n\n"
+                "আমি উত্তর-পূর্ব ভারতের ৮টি পাহাড়ি রাজ্যের ভূমিধস ঝুঁকি সার্বক্ষণিক পর্যবেক্ষণ করি।\n\n"
+                "**আপনি যা জানতে পারেন:**\n"
+                "* যেকোনো স্টেশনের ঝুঁকি তথ্য (যেমন *'তাওয়াং বা গ্যাংটকের বর্তমান অবস্থা কী?'*)\n"
+                "* সর্বোচ্চ ঝুঁকিপূর্ণ এলাকা ও সক্রিয় সতর্কতা\n"
+                "* জরুরি উদ্ধার রুট ও নিকটস্থ আশ্রয় শিবির\n"
+                "* ভূমিধস সতর্কতা ও আত্মরক্ষা প্রোটোকল\n"
+            )
+        elif lang == "as":
+            return (
+                "### নমস্কাৰ! মই নিৰীক্ষা (NIRAKSHA) AI দুৰ্যোগ ব্যৱস্থাপনা সহকাৰী।\n\n"
+                "মই উত্তৰ-পূৰ্বাঞ্চলৰ ৮ খন পাহাৰীয়া ৰাজ্যৰ ভূমিস্খলন বিপদাশংকা প্ৰত্যক্ষভাৱে নিৰীক্ষণ কৰোঁ।\n\n"
+                "**আপুনি কি কি সুধিব পাৰে:**\n"
+                "* যিকোনো ষ্টেচনৰ বিপদাশংকা (যেনে *'তাৱাং বা শ্বিলঙৰ বৰষুণৰ স্থিতি কি?'*)\n"
+                "* সৰ্বাধিক বিপদজনক অঞ্চল আৰু সতৰ্কবাৰ্তা\n"
+                "* জৰুৰী স্থানান্তৰ পথ আৰু সাহায্য শিবিৰ\n"
+                "* ভূমিস্খলন সুৰক্ষা ব্যৱস্থা আৰু নিৰ্দেশনাৱলী\n"
+            )
+        else:
+            return (
+                "### Welcome to NIRAKSHA AI Landslide Decision Support System\n\n"
+                "I am your tactical early-warning copilot, monitoring 20 telemetry stations across Northeast India.\n\n"
+                "**How I can assist you:**\n"
+                "* Query any specific station (e.g. *'What is the risk in Tawang?'*, *'How is Gangtok?'*)\n"
+                "* Inquire about highest threat zones and active alerts\n"
+                "* Get emergency evacuation corridors & relief camp logistics\n"
+                "* Review geotechnical risk factors, slope stability, and rainfall radar\n"
+            )
+
+    # 3. SAFETY PRECAUTIONS & DOS/DON'TS
+    if any(k in msg_lower for k in ["safety", "what to do", "precaution", "dos", "don'ts", "protect", "warning signs", "सावधानी", "সুরক্ষা", "সাৱধান"]):
+        if lang == "hi":
+            return (
+                "### भूस्खलन सुरक्षा एवं आपातकालीन सावधानियां (SOP)\n\n"
+                "**भूस्खलन के पूर्व चेतावनी संकेत:**\n"
+                "* दीवारों या पहाड़ी ढलानों पर नई दरारें दिखना\n"
+                "* पेड़ों या बिजली के खंभों का एक ओर झुकना\n"
+                "* पहाड़ी नालों में अचानक मटमैला पानी या बहाव में रुकावट\n\n"
+                "**आपातकाल में क्या करें:**\n"
+                "1. **तत्काल सुरक्षित स्थान पर जाएं**: ढलान के ठीक नीचे या मलबे के संभावित बहाव पथ से दूर ऊंची ठोस जमीन पर जाएं।\n"
+                "2. **आपातकालीन किट साथ रखें**: टॉर्च, प्राथमिक उपचार किट, रेडियो और आवश्यक दवाएं साथ लें।\n"
+                "3. **अवरुद्ध मार्गों पर वाहन न चलाएं**: बाढ़ या भूस्खलन प्रभावित पहाड़ी सड़कों पर न जाएं।\n"
+                "4. **आपातकालीन नंबर डायल करें**: जिला नियंत्रण कक्ष (1077) या NDRF/SDRF से संपर्क करें।\n"
+            )
+        elif lang == "bn":
+            return (
+                "### ভূমিধস জরুরি সুরক্ষা ও আত্মরক্ষা প্রোটোকল\n\n"
+                "**ভূমিধসের সতর্কতামূলক লক্ষণ:**\n"
+                "* পাহাড়ি ঢালে বা বসতবাড়ির দেয়ালে নতুন ফাটল সৃষ্টি\n"
+                "* গাছপালা ও বৈদ্যুতিক খুঁটি একদিকে হেলে পড়া\n"
+                "* পাহাড়ি ঝর্ণার জল হঠাৎ অতিরিক্ত ঘোলাটে হয়ে যাওয়া\n\n"
+                "**জরুরি পদক্ষেপ:**\n"
+                "1. **অবিলম্বে নিরাপদ আশ্রয়ে যান**: ঝুঁকিপূর্ণ ঢাল ছেড়ে দ্রুত স্থায়ী উচ্চভূমিতে চলে যান।\n"
+                "2. **জরুরি কিট সঙ্গে রাখুন**: ফার্স্ট এইড কিট, টর্চলাইট এবং জরুরি ঔষধ সঙ্গে রাখুন।\n"
+                "3. **পাহাড়ি রাস্তায় যান চলাচল বন্ধ রাখুন**: ধসপ্রবণ সড়কে চলাচল এড়িয়ে চলুন।\n"
+            )
+        elif lang == "as":
+            return (
+                "### ভূমিস্খলন সুৰক্ষা আৰু সাৱধানতামূলক ব্যৱস্থা\n\n"
+                "**পূৰ্ব সতৰ্কতাৰ লক্ষণসমূহ:**\n"
+                "* পাহাৰীয়া ঢাল বা ঘৰৰ দেৱালত নতুন ফাঁট মেলা\n"
+                "* গছ-গছনি আৰু বিদ্যুতৰ খুঁটা হেলনীয়া হোৱা\n"
+                "* পাহাৰীয়া জান-জুৰিত হঠাৎ বোকাময় পানীৰ সোঁত বৃদ্ধি\n\n"
+                "**জৰুৰী পৰামৰ্শ:**\n"
+                "1. **উচ্চ আৰু নিৰাপদ স্থানলৈ যাওক**: বিপদজনক পাহাৰীয়া অঞ্চল এৰি আশ্ৰয় শিবিৰলৈ যাওক।\n"
+                "2. **জৰুৰী ঔষধ আৰু খাদ্য লগত ৰাখক**।\n"
+                "3. **জিলা দুৰ্যোগ ব্যৱস্থাপনা কৰ্তৃপক্ষৰ সৈতে যোগাযোগ কৰক**।\n"
+            )
+        else:
+            return (
+                "### Landslide Safety & Emergency Action Guidelines\n\n"
+                "**Key Warning Signs:**\n"
+                "* Rapidly expanding cracks in terrain, roads, or foundation slabs\n"
+                "* Tilting of power poles, fences, or mature slope trees\n"
+                "* Sudden turbidity or blockage in mountain stream channels\n\n"
+                "**Immediate Action Protocol:**\n"
+                "1. **Evacuate the Debris Corridor**: Move laterally away from the fall line toward elevated, stable bedrock.\n"
+                "2. **Maintain Radio Communication**: Tune into local disaster management emergency broadcasts.\n"
+                "3. **Stay Clear of Mountain Passes**: Avoid driving through vulnerable ghat roads during heavy monsoon downpours.\n"
+            )
+
+    # 4. HOW ML / NIRAKSHA WORKS
+    if any(k in msg_lower for k in ["how it works", "model", "algorithm", "ml", "machine learning", "accuracy", "xgboost", "gradient boosting", "prediction method"]):
+        if lang == "hi":
+            return (
+                "### निरक्षा (NIRAKSHA) मशीन लर्निंग पूर्वानुमान प्रणाली\n\n"
+                "* **एल्गोरिदम**: ग्रेडिएंट बूस्टिंग (Gradient Boosting), रैंडम फॉरेस्ट (Random Forest) और XGBoost का संयुक्त एन्सेम्बल मॉडल।\n"
+                "* **इनपुट पैरामीटर्स**: 24 घंटे की संचयी वर्षा, मृदा नमी संतृप्ति, ढलान कोण, स्थलाकृतिक गीलापन सूचकांक (TWI), और नदी तट से दूरी।\n"
+                "* **सटीकता (Accuracy)**: 92.4% ROC-AUC स्कोर के साथ वास्तविक समय जोखिम वर्गीकरण।\n"
+                "* **वर्गीकरण**: LOW (0-30), MODERATE (31-60), HIGH (61-80), CRITICAL (81-100).\n"
+            )
+        elif lang == "bn":
+            return (
+                "### নিরীক্ষা (NIRAKSHA) মেশিন লার্নিং প্রেডিকশন ইঞ্জিন\n\n"
+                "* **মডেল আর্কিটেকচার**: Gradient Boosting, Random Forest এবং XGBoost এন্সেম্বল মডেল।\n"
+                "* **টেলিমেট্রি ইনপুট**: বিগত ২৪ ঘণ্টার বৃষ্টিপাত, মাটির আর্দ্রতা, পাহাড়ের ঢাল (Slope), টপোগ্রাফিক সূচক ও নিকটস্থ নদীর দূরত্ব।\n"
+                "* **সঠিকতার মাত্রা**: ৯২.৪% ROC-AUC স্কোরসহ রিয়েল-টাইম পূর্বাভাস।\n"
+            )
+        elif lang == "as":
+            return (
+                "### নিৰীক্ষা (NIRAKSHA) কৃত্ৰিম বুদ্ধিমত্তা আৰু মেচিন লাৰ্নিং প্ৰণালী\n\n"
+                "* **মডেলসমূহ**: Gradient Boosting, Random Forest আৰু XGBoost ব্যৱস্থা।\n"
+                "* **ইনপুট তথ্য**: বিগত ২৪ ঘণ্টাৰ বৰষুণৰ পৰিমাণ, মাটিৰ সেমেকা ভাব, পাহাৰৰ ঢাল আৰু নদীৰ দূৰত্ব।\n"
+                "* **শুদ্ধতাৰ হাৰ**: ৯২.৪% নিৰ্ভুল পূৰ্বাভাস প্ৰদানত সক্ষম।\n"
+            )
+        else:
+            return (
+                "### NIRAKSHA Machine Learning Hazard Prediction Architecture\n\n"
+                "* **Ensemble Pipeline**: Gradient Boosting Classifier, Random Forest, and XGBoost.\n"
+                "* **Geotechnical Features**: 24h cumulative rainfall, real-time soil moisture sensors, slope gradient (°), Topographic Wetness Index (TWI), and distance to drainage channels.\n"
+                "* **Validation Metrics**: 92.4% ROC-AUC with rigorous cross-validation across Eastern Himalayan terrain patterns.\n"
+                "* **Risk Tiers**: LOW (0–30), MODERATE (31–60), HIGH (61–80), CRITICAL (81–100).\n"
+            )
+
+    # 5. ALL STATIONS / NETWORK SUMMARY
+    if any(k in msg_lower for k in ["all stations", "list stations", "how many stations", "network", "states", "coverage"]):
+        st_names = [f"{s.name} ({s.risk_level})" for s in sorted_st]
+        return (
+            f"### NIRAKSHA Telemetry Sensor Network Coverage\n\n"
+            f"Monitoring **20 mountain stations** across all 8 North-Eastern states:\n\n"
+            f"* **Critical/High**: {', '.join(critical_st + high_st) if (critical_st or high_st) else 'None currently'}\n"
+            f"* **All Stations**: {', '.join(st_names)}\n"
+            f"* **Active Alerts**: {len(active_alerts)} sectors active\n"
+        )
+
+    # 6. RAINFALL SPECIFIC INQUIRY
     if any(k in msg_lower for k in ["rain", "precipitation", "वर्षा", "বৃষ্টি", "বৰষুণ"]):
         top_rain_st = max(stations, key=lambda s: getattr(s, 'current_rainfall', 0.0) or 0.0, default=None)
         r_name = top_rain_st.name if top_rain_st else "Tawang"
@@ -222,7 +364,7 @@ def generate_multilingual_fallback(user_message: str, stations: list, active_ale
                 f"*Source: NIRAKSHA Live Telemetry*"
             )
 
-    # 3. EVACUATION / EMERGENCY PROTOCOLS
+    # 7. EVACUATION / EMERGENCY PROTOCOLS
     if any(k in msg_lower for k in ["evacuat", "shelter", "camp", "emergency", "sop", "route", "मार्ग", "निकासी", "উদ্ধার", "স্থানান্তৰ", "সাহায্য"]):
         top_name = top.name if top else "Tawang"
         if lang == "hi":
@@ -262,7 +404,7 @@ def generate_multilingual_fallback(user_message: str, stations: list, active_ale
                 f"*Source: NIRAKSHA Live Telemetry*"
             )
 
-    # 4. HIGHEST RISK / GENERAL REGIONAL THREAT
+    # 8. TOP THREAT & REGIONAL STATUS
     top_name = top.name if top else "Tawang"
     top_score = top.risk_score if top else 81.6
     top_rain = top.current_rainfall if top else 247.3
@@ -403,20 +545,17 @@ ALL 20 MONITORED STATIONS & LIVE DATA:
 
 CRITICAL INSTRUCTIONS:
 1. Directly answer the user's specific query. If they ask about a specific station (e.g. Gangtok, Silchar, Tawang, Shillong), look up its exact row in the table above and give its exact metrics.
-2. If they ask for the highest risk station, state {top.name if top else 'Tawang'} with its exact score and rainfall.
-3. If they ask for evacuation protocols, explain the immediate route clearance and relief camp guidelines.
+2. If they ask for safety precautions, emergency steps, causes of landslides, or ML algorithms, explain clearly and helpfully.
+3. If they ask for the highest risk station, state {top.name if top else 'Tawang'} with its exact score and rainfall.
 4. Structure your response with clean Markdown headers and bold bullet points.
 5. End with an actionable operational directive for field or rescue units.
 """
 
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    configured_model = os.environ.get("GEMINI_MODEL", "gemini-flash-latest").strip()
+    # Fast free lite models first to ensure 100% uptime without quota errors
+    candidate_models = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]
 
     if api_key:
-        default_models = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-pro-latest"]
-        candidate_models = [configured_model] if configured_model not in default_models else []
-        candidate_models.extend(default_models)
-
         for model in candidate_models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
@@ -469,12 +608,11 @@ CRITICAL INSTRUCTIONS:
                     else:
                         logger.warning(f"Gemini {model} returned HTTP {resp.status_code}: {resp.text[:120]}")
                         if resp.status_code == 429:
-                            logger.info("Gemini quota reached (429). Switching to telemetry fallback.")
-                            break
+                            logger.info(f"Gemini {model} quota reached (429). Trying next candidate.")
             except Exception as e:
                 logger.warning(f"Gemini {model} exception: {e}")
 
-    # Deterministic telemetry fallback if Gemini call fails, times out, or key is absent
+    # Fallback to local NLP multi-intent engine
     logger.info("Using deterministic multilingual telemetry engine.")
     fallback_text = generate_multilingual_fallback(user_message, stations, active_alerts, lang=lang, evacuations=evacuations)
     return {

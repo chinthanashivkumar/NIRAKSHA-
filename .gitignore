@@ -1,0 +1,33 @@
+# Python
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Environment variables & API keys
+.env
+.env.local
+.env.*.local
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+.vite/
+*.log
+
+# Database & temporary storage
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+scratch/
+
+# OS specific
+.DS_Store
+Thumbs.db

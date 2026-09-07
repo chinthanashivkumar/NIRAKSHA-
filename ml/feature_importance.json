@@ -1,0 +1,42 @@
+[
+  {
+    "feature": "lulc",
+    "importance": 0.3746
+  },
+  {
+    "feature": "elevation",
+    "importance": 0.18
+  },
+  {
+    "feature": "annual_rainfall",
+    "importance": 0.0987
+  },
+  {
+    "feature": "distance_to_rivers",
+    "importance": 0.0702
+  },
+  {
+    "feature": "ndvi",
+    "importance": 0.0665
+  },
+  {
+    "feature": "twi",
+    "importance": 0.0636
+  },
+  {
+    "feature": "event_rainfall",
+    "importance": 0.0534
+  },
+  {
+    "feature": "curvature",
+    "importance": 0.0334
+  },
+  {
+    "feature": "slope",
+    "importance": 0.0307
+  },
+  {
+    "feature": "aspect",
+    "importance": 0.0289
+  }
+]

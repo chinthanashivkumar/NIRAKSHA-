@@ -1,0 +1,92 @@
+{
+  "selected_model": "Gradient Boosting",
+  "selection_rationale": "Selected for optimal Recall (84.9%) in early hazard warning, with balanced F1-score (84.9%) and ROC-AUC (0.9075).",
+  "trained_at": "2026-09-05 11:16:57 UTC",
+  "metrics": {
+    "accuracy": 0.8488,
+    "precision": 0.8488,
+    "recall": 0.8488,
+    "f1_score": 0.8488,
+    "roc_auc": 0.9075,
+    "confusion_matrix": [
+      [
+        73,
+        13
+      ],
+      [
+        13,
+        73
+      ]
+    ]
+  },
+  "all_models": {
+    "Logistic Regression": {
+      "accuracy": 0.7849,
+      "precision": 0.7882,
+      "recall": 0.7791,
+      "f1_score": 0.7836,
+      "roc_auc": 0.8671,
+      "confusion_matrix": [
+        [
+          68,
+          18
+        ],
+        [
+          19,
+          67
+        ]
+      ]
+    },
+    "Random Forest": {
+      "accuracy": 0.843,
+      "precision": 0.8642,
+      "recall": 0.814,
+      "f1_score": 0.8383,
+      "roc_auc": 0.9031,
+      "confusion_matrix": [
+        [
+          75,
+          11
+        ],
+        [
+          16,
+          70
+        ]
+      ]
+    },
+    "Gradient Boosting": {
+      "accuracy": 0.8488,
+      "precision": 0.8488,
+      "recall": 0.8488,
+      "f1_score": 0.8488,
+      "roc_auc": 0.9075,
+      "confusion_matrix": [
+        [
+          73,
+          13
+        ],
+        [
+          13,
+          73
+        ]
+      ]
+    },
+    "XGBoost": {
+      "accuracy": 0.8314,
+      "precision": 0.8519,
+      "recall": 0.8023,
+      "f1_score": 0.8263,
+      "roc_auc": 0.9051,
+      "confusion_matrix": [
+        [
+          74,
+          12
+        ],
+        [
+          17,
+          69
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "dataset_name": "Landslide Susceptibility Conditioning Factor Dataset",
+  "dataset_source": "Zenodo Open Access Repository",
+  "doi": "10.5281/zenodo.21828382",
+  "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+  "regional_reference": "Southern Sikkim State Landslide Inventory (Zenodo 10.5281/zenodo.8169506, NER India)",
+  "total_records": 859,
+  "train_samples": 687,
+  "test_samples": 172,
+  "features": [
+    "elevation",
+    "slope",
+    "aspect",
+    "curvature",
+    "twi",
+    "distance_to_rivers",
+    "annual_rainfall",
+    "event_rainfall",
+    "ndvi",
+    "lulc"
+  ],
+  "target_variable": "landslide (0: Stable / Non-Landslide, 1: Landslide Occurrence)",
+  "models_compared": [
+    "Logistic Regression",
+    "Random Forest",
+    "Gradient Boosting",
+    "XGBoost"
+  ],
+  "selected_model": "Gradient Boosting",
+  "training_date": "2026-09-05",
+  "retrain_command": "python ml/train.py",
+  "important_limitations": "This system estimates landslide susceptibility and relative risk from available environmental and terrain conditioning factors. It is a decision-support prototype and does not guarantee the exact physical occurrence, location, or timestamp of a landslide."
+}

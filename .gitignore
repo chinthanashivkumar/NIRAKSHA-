@@ -16,8 +16,6 @@ __pycache__/
 # Node / Frontend
 node_modules/
 frontend/node_modules/
-frontend/dist/
-dist/
 .vite/
 *.log
 

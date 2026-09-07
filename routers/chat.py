@@ -419,14 +419,12 @@ RESPONSE INSTRUCTIONS:
 """
 
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    configured_model = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash").strip()
+    configured_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
 
     if api_key:
-        candidate_models = [configured_model]
-        if "gemini-flash-latest" not in candidate_models:
-            candidate_models.append("gemini-flash-latest")
-        if "gemini-3.6-flash" not in candidate_models:
-            candidate_models.append("gemini-3.6-flash")
+        default_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-flash-latest"]
+        candidate_models = [configured_model] if configured_model not in default_models else []
+        candidate_models.extend(default_models)
 
         for model in candidate_models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -458,12 +456,12 @@ RESPONSE INSTRUCTIONS:
                 "contents": contents,
                 "generationConfig": {
                     "temperature": 0.35,
-                    "maxOutputTokens": 600
+                    "maxOutputTokens": 2048
                 }
             }
 
             try:
-                async with httpx.AsyncClient(timeout=12.0) as client:
+                async with httpx.AsyncClient(timeout=25.0) as client:
                     resp = await client.post(url, json=payload)
                     if resp.status_code == 200:
                         data = resp.json()
@@ -478,12 +476,13 @@ RESPONSE INSTRUCTIONS:
                                 if final_marker:
                                     reply_text = reply_text[final_marker.end():]
                                 reply_text = reply_text.strip()
-                                return {
-                                    "response": reply_text,
-                                    "source": "gemini",
-                                    "model": model,
-                                    "language": lang
-                                }
+                                if reply_text:
+                                    return {
+                                        "response": reply_text,
+                                        "source": "gemini",
+                                        "model": model,
+                                        "language": lang
+                                    }
                     else:
                         logger.warning(f"Gemini {model} returned HTTP {resp.status_code}: {resp.text[:120]}")
                         if resp.status_code == 429:

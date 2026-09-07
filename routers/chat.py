@@ -419,10 +419,10 @@ RESPONSE INSTRUCTIONS:
 """
 
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    configured_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
+    configured_model = os.environ.get("GEMINI_MODEL", "gemini-flash-latest").strip()
 
     if api_key:
-        default_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-flash-latest"]
+        default_models = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-pro-latest"]
         candidate_models = [configured_model] if configured_model not in default_models else []
         candidate_models.extend(default_models)
 
@@ -469,16 +469,12 @@ RESPONSE INSTRUCTIONS:
                         if candidates and "content" in candidates[0]:
                             parts = candidates[0]["content"].get("parts", [])
                             if parts and "text" in parts[0]:
-                                reply_text = parts[0]["text"].strip()
-                                # Clean any thought artifacts or drafting preambles
-                                reply_text = re.sub(r'<thought>.*?</thought>', '', reply_text, flags=re.DOTALL)
-                                final_marker = re.search(r'\*\*(?:Final Response|Final Output|Final Polish[^\*]*)\*\*:\s*', reply_text, re.IGNORECASE)
-                                if final_marker:
-                                    reply_text = reply_text[final_marker.end():]
-                                reply_text = reply_text.strip()
-                                if reply_text:
+                                raw_text = parts[0]["text"].strip()
+                                # Clean any thought tags
+                                clean_text = re.sub(r'<thought>.*?</thought>', '', raw_text, flags=re.DOTALL).strip()
+                                if clean_text:
                                     return {
-                                        "response": reply_text,
+                                        "response": clean_text,
                                         "source": "gemini",
                                         "model": model,
                                         "language": lang

@@ -214,5 +214,5 @@ python -m pytest tests/
 ---
 
 ##  Contributors
-Developed for the **Smart India Hackathon 2026** by Team NIRAKSHA.  
+Developed for the **Smart India Hackathon 2026** by Team INSPIRA.  
 *In coordination with the Ministry of Development of North Eastern Region (MDoNER), Government of India.* 🇮🇳

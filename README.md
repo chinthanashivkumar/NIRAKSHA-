@@ -1,4 +1,4 @@
-# 🛡️ NIRAKSHA AI — Landslide Early Warning & Disaster Response System
+#  NIRAKSHA AI — Landslide Early Warning & Disaster Response System
 
 > **Smart India Hackathon (SIH) 2026 | Ministry of Development of North Eastern Region (MDoNER)**  
 > Real-time IoT/GIS Telemetry, Machine Learning Hazard Forecasting, Google Gemini-Powered Multilingual AI Decision Support & Tactical Evacuation Routing across the 8 North-Eastern States of India.
@@ -6,11 +6,11 @@
 [![Live Demo](https://img.shields.io/badge/Live_Demo-niraksha--2.onrender.com-00C7B7?style=for-the-badge&logo=render&logoColor=white)](https://niraksha-2.onrender.com/)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/chinthanashivkumar/NIRAKSHA-)
 
-🚀 **Live Web Application**: [https://niraksha-2.onrender.com/](https://niraksha-2.onrender.com/)
+ **Live Web Application**: [https://niraksha-2.onrender.com/](https://niraksha-2.onrender.com/)
 
 ---
 
-## 📌 Overview
+##  Overview
 
 **NIRAKSHA** is an end-to-end intelligent disaster management platform tailored for the unique geo-topography and monsoon precipitation patterns of North-East India (**Assam, Meghalaya, Arunachal Pradesh, Sikkim, Manipur, Mizoram, Nagaland, and Tripura**).
 
@@ -24,7 +24,7 @@ It combines:
 
 ---
 
-## 🏛️ System Architecture
+##  System Architecture
 
 ```mermaid
 graph TD
@@ -64,7 +64,7 @@ graph TD
 
 ---
 
-## ✨ Key Features & Modules
+##  Key Features & Modules
 
 ### 1. GIS Dashboard & Live Telemetry
 - **Interactive Geospatial Map**: Satellite, terrain, and street GIS layers with real-time risk heatmaps and village pins.
@@ -114,7 +114,7 @@ graph TD
 
 ---
 
-## ⚙️ Environment Variables
+##  Environment Variables
 
 Create or verify `.env` in the project root:
 
@@ -125,7 +125,7 @@ VITE_GEMINI_API_KEY=your_google_gemini_api_key_here
 
 ---
 
-## 🚀 Quick Start Guide
+##  Quick Start Guide
 
 ### Prerequisites
 - **Python 3.10+** (Tested on Python 3.11 & 3.14)
@@ -192,7 +192,7 @@ python -m pytest tests/
 
 ---
 
-## 📡 API Endpoints Overview
+##  API Endpoints Overview
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -213,6 +213,6 @@ python -m pytest tests/
 
 ---
 
-## 👥 Contributors
+##  Contributors
 Developed for the **Smart India Hackathon 2026** by Team NIRAKSHA.  
 *In coordination with the Ministry of Development of North Eastern Region (MDoNER), Government of India.* 🇮🇳

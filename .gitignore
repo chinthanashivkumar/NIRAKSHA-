@@ -21,6 +21,8 @@ frontend/node_modules/
 
 # Database & temporary storage
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 uploads/*

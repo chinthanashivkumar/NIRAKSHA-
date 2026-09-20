@@ -130,16 +130,33 @@ export default function Research() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [histRes, monthRes, zoneRes, valRes] = await Promise.allSettled([
+        const [histRes, monthRes, zoneRes, valRes, statRes] = await Promise.allSettled([
           api.get('/research/historical'),
           api.get('/research/monthly-distribution'),
           api.get('/research/susceptibility-zones'),
-          api.get('/research/validation-comparison')
+          api.get('/research/validation-comparison'),
+          api.get('/research/statistics')
         ]);
-        if (histRes.status === 'fulfilled' && histRes.value?.data) setHistorical(histRes.value.data);
-        if (monthRes.status === 'fulfilled' && monthRes.value?.data?.data) setMonthlyData(monthRes.value.data.data);
-        if (zoneRes.status === 'fulfilled' && zoneRes.value?.data) setZones(zoneRes.value.data);
+        if (histRes.status === 'fulfilled' && histRes.value?.data) {
+          const d = histRes.value.data;
+          if (Array.isArray(d)) {
+            setHistorical(prev => ({ ...prev, districts: d }));
+          } else if (d.districts) {
+            setHistorical(d);
+          }
+        }
+        if (monthRes.status === 'fulfilled' && monthRes.value?.data) {
+          const md = monthRes.value.data?.data || monthRes.value.data;
+          if (Array.isArray(md)) setMonthlyData(md);
+        }
+        if (zoneRes.status === 'fulfilled' && zoneRes.value?.data) {
+          const zd = zoneRes.value.data?.data || zoneRes.value.data;
+          if (Array.isArray(zd)) setZones(zd);
+        }
         if (valRes.status === 'fulfilled' && valRes.value?.data) setValidation(valRes.value.data);
+        if (statRes.status === 'fulfilled' && statRes.value?.data) {
+          setHistorical(prev => ({ ...prev, statistics: statRes.value.data }));
+        }
       } catch (err) {
         console.warn('Research data loaded with fallback defaults', err);
       }

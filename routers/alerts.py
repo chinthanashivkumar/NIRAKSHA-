@@ -16,7 +16,13 @@ def get_all_alerts(db: Session = Depends(get_db)):
 @router.get("/active", response_model=List[AlertResponse])
 def get_active_alerts(db: Session = Depends(get_db)):
     alerts = db.query(Alert).filter(Alert.status == "active").order_by(Alert.timestamp.desc()).all()
-    return alerts
+    # Deduplicate by station_id / station_name, keeping highest risk_score
+    deduped = {}
+    for a in alerts:
+        key = a.station_id if a.station_id else a.station_name
+        if key not in deduped or (a.risk_score or 0) > (deduped[key].risk_score or 0):
+            deduped[key] = a
+    return sorted(deduped.values(), key=lambda x: (x.risk_score or 0), reverse=True)
 
 @router.get("/prioritize", response_model=List[PrioritizeResponse])
 def prioritize_alerts(db: Session = Depends(get_db)):
@@ -26,16 +32,26 @@ def prioritize_alerts(db: Session = Depends(get_db)):
     - Affected Demographic Population (30% weight)
     - Road Access Corridors Blocked (20% weight)
     - Elapsed Unresolved Time (10% weight)
+    Deduplicates by station_id, keeping the entry with the highest risk score.
     """
     active_alerts = db.query(Alert).filter(
         Alert.status == "active",
         Alert.risk_level.in_(["HIGH", "CRITICAL"])
     ).all()
     
+    # Deduplicate by station_id (keep higher risk_score)
+    station_alerts = {}
+    for alert in active_alerts:
+        key = alert.station_id if alert.station_id else alert.station_name
+        if key not in station_alerts or (alert.risk_score or 0) > (station_alerts[key].risk_score or 0):
+            station_alerts[key] = alert
+            
+    deduped_alerts = list(station_alerts.values())
+    
     prioritized = []
     now = datetime.utcnow()
     
-    for alert in active_alerts:
+    for alert in deduped_alerts:
         hours_since = (now - alert.timestamp).total_seconds() / 3600.0
         
         # Rule-based decision-support formula:

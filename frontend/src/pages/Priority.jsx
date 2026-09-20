@@ -24,7 +24,18 @@ export default function Priority() {
   const fetchPriorities = async () => {
     try {
       const res = await api.get('/alerts/prioritize');
-      setItems(res.data);
+      // Deduplicate by station_id / station_name keeping highest risk_score
+      const map = new Map();
+      (res.data || []).forEach(item => {
+        const key = item.alert?.station_id || item.alert?.station_name;
+        if (!map.has(key) || (item.alert?.risk_score || 0) > (map.get(key).alert?.risk_score || 0)) {
+          map.set(key, item);
+        }
+      });
+      const deduped = Array.from(map.values())
+        .sort((a, b) => b.priority_score - a.priority_score)
+        .map((item, idx) => ({ ...item, rank: idx + 1 }));
+      setItems(deduped);
       setUpdatedAt(new Date().toLocaleTimeString());
     } catch (e) {
       console.error(e);

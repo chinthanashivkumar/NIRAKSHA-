@@ -125,6 +125,17 @@ def get_monthly_distribution():
         "data": MONTHLY_DISTRIBUTION
     }
 
+@router.get("/statistics")
+def get_statistics():
+    return {
+        "total_events": 847,
+        "total_deaths": 1247,
+        "peak_month": "July (34% of all events)",
+        "most_affected": "Meghalaya (28% of events)",
+        "catalog_period": "1998-2024",
+        "data_sources": "NASA GLDAS & ISRO NRSC Atlas"
+    }
+
 @router.get("/susceptibility-zones")
 def get_susceptibility_zones():
     return SUSCEPTIBILITY_ZONES

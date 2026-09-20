@@ -27,8 +27,21 @@ export default function Alerts() {
   const fetchAlerts = useCallback(async () => {
     try {
       const res = await api.get(filter === 'active' ? '/alerts/active' : '/alerts');
-      let data = res.data;
+      let data = res.data || [];
       if (filter !== 'all' && filter !== 'active') data = data.filter(a => a.status === filter);
+
+      // Deduplicate active alerts so each station appears at most once
+      if (filter === 'active') {
+        const map = new Map();
+        data.forEach(a => {
+          const key = a.station_id || a.station_name;
+          if (!map.has(key) || (a.risk_score || 0) > (map.get(key).risk_score || 0)) {
+            map.set(key, a);
+          }
+        });
+        data = Array.from(map.values()).sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0));
+      }
+
       setAll(data);
       setError(null);
     } catch {

@@ -103,22 +103,26 @@ async def simulate_live_data():
                 station.risk_level       = pred["risk_level"]
                 station.last_updated     = datetime.utcnow()
 
-                # Auto-create alert for HIGH/CRITICAL if none active and no duplicate in last 1 hour
+                # Check if ACTIVE alert already exists for the SAME station_id
                 if station.risk_score >= 50.0:
-                    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-                    recent_duplicate = db.query(Alert).filter(
-                        Alert.station_id == station.id,
-                        Alert.risk_level == station.risk_level,
-                        Alert.timestamp >= one_hour_ago
-                    ).first()
-
                     active_alert = db.query(Alert).filter(
                         Alert.station_id == station.id,
                         Alert.status == "active"
                     ).first()
 
-                    if not recent_duplicate and not active_alert:
-                        factors = ", ".join(pred["top_contributing_factors"])
+                    factors = ", ".join(pred["top_contributing_factors"])
+
+                    if active_alert:
+                        # Update existing alert instead of creating a new one
+                        active_alert.risk_score = station.risk_score
+                        active_alert.risk_level = station.risk_level
+                        active_alert.timestamp = datetime.utcnow()
+                        active_alert.message = (
+                            f"Risk updated to {station.risk_level} "
+                            f"(score: {pred['risk_score']:.1f}). "
+                            f"Top factors: {factors}"
+                        )
+                    else:
                         message = (
                             f"Risk escalated to {station.risk_level} "
                             f"(score: {pred['risk_score']:.1f}). "
@@ -141,6 +145,8 @@ async def simulate_live_data():
                             message=message,
                             affected_population=exposed_pop,
                             affected_roads=roads_affected,
+                            status="active",
+                            timestamp=datetime.utcnow(),
                         )
                         db.add(new_alert)
                         logger.warning(

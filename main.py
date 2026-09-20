@@ -9,7 +9,7 @@ from pathlib import Path
 from database import engine, Base, SessionLocal
 from seed import seed_database
 from routers import predict, stations, alerts, weather, reports, sync, timeline, resources
-from routers import chat
+from routers import chat, calls, weather_forecast, research
 from services.simulation import simulate_live_data
 
 # Create necessary directories
@@ -57,6 +57,9 @@ app.include_router(sync.router)
 app.include_router(chat.router)
 app.include_router(timeline.router)
 app.include_router(resources.router)
+app.include_router(calls.router)
+app.include_router(weather_forecast.router)
+app.include_router(research.router)
 
 @app.on_event("startup")
 async def startup_event():

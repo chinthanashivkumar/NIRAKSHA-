@@ -69,8 +69,17 @@ class ChatMessage(BaseModel):
     conversation_history: Optional[List[Dict[str, Any]]] = []
 
 
-def normalize_language(raw_lang: Optional[str]) -> str:
-    """Normalize language code to one of: en, hi, bn, as."""
+def normalize_language(raw_lang: Optional[str], text: Optional[str] = None) -> str:
+    """Normalize language code to one of: en, hi, bn, as. Also auto-detect from unicode script."""
+    if text:
+        # Detect Devanagari (Hindi)
+        if re.search(r'[\u0900-\u097F]', text):
+            return "hi"
+        # Detect Bengali / Assamese script
+        if re.search(r'[\u0980-\u09FF]', text):
+            if re.search(r'[\u09F0\u09F1]', text) or any(w in text for w in ["কেনে", "কিয়", "আছে", "হয়", "নহয়", "তাৱাং", "শ্বিলং"]):
+                return "as"
+            return "bn"
     if not raw_lang:
         return "en"
     val = str(raw_lang).strip().lower()
@@ -426,7 +435,8 @@ def generate_multilingual_fallback(user_message: str, stations: list, active_ale
         if lang == "hi":
             return (
                 "### नमस्ते! मैं निरक्षा (NIRAKSHA) AI आपातकालीन सहायक हूँ।\n\n"
-                "मैं पूर्वोत्तर भारत (NER) के 8 राज्यों में भूस्खलन जोखिम की वास्तविक समय (Real-time) निगरानी करता हूँ।\n\n"
+                "### नमस्ते! मैं निरक्षा (NIRAKSHA) AI आपातकालीन सहायक हूँ。\n\n"
+                "मैं पूर्वोत्तर भारत (NER) के 8 राज्यों में भूस्खलन जोखिम की वास्तविक समय (Real-time) निगरानी करता हूँ。\n\n"
                 "**आप मुझसे क्या पूछ सकते हैं:**\n"
                 "* किसी भी स्टेशन का जोखिम (जैसे *'तवांग का स्टेटस क्या है?'* या *'गंगटोक में कितनी वर्षा हुई?'*)\n"
                 "* शीर्ष जोखिम क्षेत्र और सक्रिय चेतावनियां\n"
@@ -436,7 +446,7 @@ def generate_multilingual_fallback(user_message: str, stations: list, active_ale
         elif lang == "bn":
             return (
                 "### নমস্কার! আমি নিরীক্ষা (NIRAKSHA) AI দুর্যোগ সহায়তা সহকারী।\n\n"
-                "আমি উত্তর-পূর্ব ভারতের ৮টি পাহাড়ি রাজ্যের ভূমিধস ঝুঁকি সার্বক্ষণিক পর্যবেক্ষণ করি।\n\n"
+                "আমি উত্তর-পূর্ব ভারতের ৮টি পাহাড়ি রাজ্যের ভূমিধস ঝুঁকি সার্বক্ষণিক পর্যবেক্ষণ করি。\n\n"
                 "**আপনি যা জানতে পারেন:**\n"
                 "* যেকোনো স্টেশনের ঝুঁকি তথ্য (যেমন *'তাওয়াং বা গ্যাংটকের বর্তমান অবস্থা কী?'*)\n"
                 "* সর্বোচ্চ ঝুঁকিপূর্ণ এলাকা ও সক্রিয় সতর্কতা\n"
@@ -445,8 +455,8 @@ def generate_multilingual_fallback(user_message: str, stations: list, active_ale
             )
         elif lang == "as":
             return (
-                "### নমস্কাৰ! মই নিৰীক্ষা (NIRAKSHA) AI দুৰ্যোগ ব্যৱস্থাপনা সহকাৰী।\n\n"
-                "মই উত্তৰ-পূৰ্বাঞ্চলৰ ৮ খন পাহাৰীয়া ৰাজ্যৰ ভূমিস্খলন বিপদাশংকা প্ৰত্যক্ষভাৱে নিৰীক্ষণ কৰোঁ।\n\n"
+                "### নমস্কাৰ! মই নিৰীক্ষা (NIRAKSHA) AI দুৰ্যোগ ব্যৱস্থাপনা সহকাৰী。\n\n"
+                "মই উত্তৰ-পূৰ্বাঞ্চলৰ ৮ খন পাহাৰীয়া ৰাজ্যৰ ভূমিস্খলন বিপদাশংকা প্ৰত্যক্ষভাৱে নিৰীক্ষণ কৰোঁ。\n\n"
                 "**আপুনি কি কি সুধিব পাৰে:**\n"
                 "* যিকোনো ষ্টেচনৰ বিপদাশংকা (যেনে *'তাৱাং বা শ্বিলঙৰ বৰষুণৰ স্থিতি কি?'*)\n"
                 "* সৰ্বাধিক বিপদজনক অঞ্চল আৰু সতৰ্কবাৰ্তা\n"
@@ -474,10 +484,10 @@ def generate_multilingual_fallback(user_message: str, stations: list, active_ale
                 "* पेड़ों या बिजली के खंभों का एक ओर झुकना\n"
                 "* पहाड़ी नालों में अचानक मटमैला पानी या बहाव में रुकावट\n\n"
                 "**आपातकाल में क्या करें:**\n"
-                "1. **तत्काल सुरक्षित स्थान पर जाएं**: ढलान के ठीक नीचे या मलबे के संभावित बहाव पथ से दूर ऊंची ठोस जमीन पर जाएं।\n"
-                "2. **आपातकालीन किट साथ रखें**: टॉर्च, प्राथमिक उपचार किट, रेडियो और आवश्यक दवाएं साथ लें।\n"
-                "3. **अवरुद्ध मार्गों पर वाहन न चलाएं**: बाढ़ या भूस्खलन प्रभावित पहाड़ी सड़कों पर न जाएं।\n"
-                "4. **आपातकालीन नंबर डायल करें**: जिला नियंत्रण कक्ष (1077) या NDRF/SDRF से संपर्क करें।\n"
+                "1. **तत्काल सुरक्षित स्थान पर जाएं**: ढलान के ठीक नीचे या मलबे के संभावित बहाव पथ से दूर ऊंची ठोस जमीन पर जाएं。\n"
+                "2. **आपातकालीन किट साथ रखें**: टॉर्च, प्राथमिक उपचार किट, रेडियो और आवश्यक दवाएं साथ लें。\n"
+                "3. **अवरुद्ध मार्गों पर वाहन न चलाएं**: बाढ़ या भूस्खलन प्रभावित पहाड़ी सड़कों पर न जाएं。\n"
+                "4. **आपातकालीन नंबर डायल करें**: जिला नियंत्रण कक्ष (1077) या NDRF/SDRF से संपर्क करें。\n"
             )
         elif lang == "bn":
             return (
@@ -626,7 +636,7 @@ LANGUAGE_DIRECTIVES = {
 async def chat(body: ChatMessage):
     user_message = (body.message or "").strip()
     raw_lang = body.language or body.lang or "en"
-    lang = normalize_language(raw_lang)
+    lang = normalize_language(raw_lang, text=user_message)
 
     if not user_message:
         fallback_empty = {
@@ -697,7 +707,7 @@ CRITICAL INSTRUCTIONS:
 """
 
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    candidate_models = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+    candidate_models = ["gemini-3.6-flash", "gemini-flash-lite-latest"]
 
     if api_key:
         for model in candidate_models:
@@ -732,7 +742,7 @@ CRITICAL INSTRUCTIONS:
             }
 
             try:
-                async with httpx.AsyncClient(timeout=25.0) as client:
+                async with httpx.AsyncClient(timeout=4.0) as client:
                     resp = await client.post(url, json=payload)
                     if resp.status_code == 200:
                         data = resp.json()
@@ -749,10 +759,11 @@ CRITICAL INSTRUCTIONS:
                                         "model": model,
                                         "language": lang
                                     }
+                    elif resp.status_code in (503, 500, 429):
+                        logger.warning(f"Gemini {model} returned HTTP {resp.status_code}. Using instant telemetry fallback.")
+                        break
                     else:
                         logger.warning(f"Gemini {model} returned HTTP {resp.status_code}: {resp.text[:120]}")
-                        if resp.status_code == 429:
-                            logger.info(f"Gemini {model} quota reached (429). Trying next candidate.")
             except Exception as e:
                 logger.warning(f"Gemini {model} exception: {e}")
 

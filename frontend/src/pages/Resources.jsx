@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Users, Tent, CheckCircle2, AlertCircle, ShieldAlert, ArrowRight, Truck, Compass } from 'lucide-react';
+import { Users, Tent, CheckCircle2, AlertCircle, ShieldAlert, ArrowRight, Truck, Compass, RefreshCw } from 'lucide-react';
 import api from '../services/api';
+import PageTransition from '../components/PageTransition';
 import { useLang } from '../contexts/LangContext';
 
 export default function Resources() {
@@ -9,6 +10,8 @@ export default function Resources() {
   const [assignment, setAssignment] = useState(null);
   const [log, setLog] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deploying, setDeploying] = useState(false);
+  const [deploySuccess, setDeploySuccess] = useState(false);
   const [error, setError] = useState(null);
   const { t } = useLang();
 
@@ -39,17 +42,23 @@ export default function Resources() {
 
   const assignNow = async () => {
     if (!assignment || !assignment.team) return;
+    setDeploying(true);
+    setDeploySuccess(false);
     try {
       await api.post('/resources/assign', {
         team: assignment.team,
         camp: assignment.camp,
       });
+      setDeploySuccess(true);
       const timestamp = new Date().toLocaleTimeString();
       setLog(prev => [{ timestamp, team: assignment.team, camp: assignment.camp }, ...prev]);
-      fetchData();
-      fetchAssignment();
+      await fetchData();
+      await fetchAssignment();
+      setTimeout(() => setDeploySuccess(false), 3000);
     } catch (e) {
       console.error('Assign error', e);
+    } finally {
+      setDeploying(false);
     }
   };
 
@@ -63,19 +72,21 @@ export default function Resources() {
   const totalCapacity = camps.reduce((sum, c) => sum + (c.capacity || 0), 0);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 page-fade">
+    <PageTransition className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 font-sans">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1E293B] pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-white tracking-tight">Resource Command & NDRF Logistics</h1>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              DISPATCH
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              <Users size={22} className="animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Resource Command & NDRF Logistics</h1>
+              <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
+                Real-time tracking of NDRF emergency battalions, relief camp shelter occupancy, and automated battalion assignment
+              </p>
+            </div>
           </div>
-          <p className="text-slate-400 text-xs mt-1">
-            Real-time tracking of NDRF emergency battalions, relief camp shelter occupancy, and automated battalion assignment
-          </p>
         </div>
       </div>
 
@@ -160,10 +171,29 @@ export default function Resources() {
 
           <button
             onClick={assignNow}
-            className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
+            disabled={deploying}
+            className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all duration-200 active:scale-95 hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+              deploySuccess
+                ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/25'
+            }`}
           >
-            <span>Confirm & Dispatch Battalion</span>
-            <ArrowRight size={14} />
+            {deploying ? (
+              <>
+                <RefreshCw size={15} className="animate-spin" />
+                <span>Processing Deployment...</span>
+              </>
+            ) : deploySuccess ? (
+              <>
+                <CheckCircle2 size={16} className="text-emerald-200" />
+                <span>Battalion Dispatched!</span>
+              </>
+            ) : (
+              <>
+                <span>Confirm & Dispatch Battalion</span>
+                <ArrowRight size={14} />
+              </>
+            )}
           </button>
         </div>
       )}
@@ -222,6 +252,6 @@ export default function Resources() {
           </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

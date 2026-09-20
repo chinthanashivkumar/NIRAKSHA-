@@ -3,6 +3,7 @@ import { MapPin, AlertCircle, Clock, Camera, CheckCircle, X, FileText, Upload, S
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { REPORT_TYPES } from '../constants/stations';
+import PageTransition from '../components/PageTransition';
 import { useLang } from '../contexts/LangContext';
 
 const timeAgo = (d) => {
@@ -131,6 +132,7 @@ export default function Reports() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const fetchReports = async () => {
     try {
@@ -156,7 +158,9 @@ export default function Reports() {
     setSubmitting(true);
     try {
       await api.post('/reports', form);
+      setSubmitSuccess(true);
       toast.success(t('Field report submitted successfully'));
+      setTimeout(() => setSubmitSuccess(false), 3000);
       setForm({
         report_type: 'slope_movement',
         description: '',
@@ -199,19 +203,21 @@ export default function Reports() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 page-fade">
+    <PageTransition className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 font-sans">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1E293B] pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-white tracking-tight">{t('Citizen & Field Hazard Reports')}</h1>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              FIELD EVIDENCE
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              <Camera size={22} className="animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{t('Citizen & Field Hazard Reports')}</h1>
+              <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
+                {t('Community ground observations and photo evidence submitted for human authority ground inspection')}
+              </p>
+            </div>
           </div>
-          <p className="text-slate-400 text-xs mt-1">
-            {t('Community ground observations and photo evidence submitted for human authority ground inspection')}
-          </p>
         </div>
       </div>
 
@@ -306,16 +312,32 @@ export default function Reports() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-blue-600/25 disabled:opacity-50"
+              className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-lg active:scale-95 hover:shadow-md hover:-translate-y-0.5 flex items-center justify-center gap-2 ${
+                submitSuccess
+                  ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/25'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {submitting ? t('Submitting Field Report...') : t('File Hazard Report')}
+              {submitting ? (
+                <>
+                  <RefreshCw size={15} className="animate-spin" />
+                  <span>{t('Processing Field Submission...')}</span>
+                </>
+              ) : submitSuccess ? (
+                <>
+                  <CheckCircle size={16} className="text-emerald-200" />
+                  <span>{t('Report Filed Successfully!')}</span>
+                </>
+              ) : (
+                <span>{t('File Hazard Report')}</span>
+              )}
             </button>
           </form>
         </div>
 
         {/* Existing Reports Stream */}
-        <div className="lg:col-span-6 bg-[#0B1728] border border-[#1E293B] rounded-xl p-6 shadow-xl space-y-4 flex flex-col">
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between border-b border-[#1E293B] pb-3">
+        <div className="lg:col-span-6 bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl space-y-4 flex flex-col">
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between border-b border-slate-700 pb-3">
             <span>{t('Verified Citizen & Field Stream')} ({reports.length})</span>
             <span className="text-[10px] font-mono text-slate-400">{t('Authority Verification Queue')}</span>
           </h3>
@@ -365,6 +387,6 @@ export default function Reports() {
           </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

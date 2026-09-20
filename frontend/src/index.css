@@ -88,7 +88,23 @@ html, body, #root {
   animation: beaconPulse 2.5s infinite;
 }
 
-/* Critical Alert Pulse */
+/* Critical Alert Pulse & Glow */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.9); }
+}
+.pulse-glow-critical {
+  animation: pulse-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { box-shadow: 0 0 3px rgba(249, 115, 22, 0.4); }
+  50% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.7); }
+}
+.pulse-glow-high {
+  animation: pulse-subtle 2.2s ease-in-out infinite;
+}
+
 @keyframes criticalPulseSlow {
   0%, 100% { box-shadow: 0 0 12px 1px rgba(239, 68, 68, 0.3); border-color: rgba(239, 68, 68, 0.5); }
   50% { box-shadow: 0 0 24px 4px rgba(239, 68, 68, 0.6); border-color: rgba(239, 68, 68, 0.8); }
@@ -96,6 +112,32 @@ html, body, #root {
 .critical-pulse {
   animation: criticalPulseSlow 2.5s ease-in-out infinite;
 }
+
+/* Skeleton loader with shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #1e293b 25%,
+    #334155 50%,
+    #1e293b 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Map marker bounce on critical */
+@keyframes markerBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.marker-bounce {
+  animation: markerBounce 1.2s infinite ease-in-out;
+}
+
 
 /* Leaflet map styling */
 .leaflet-container {

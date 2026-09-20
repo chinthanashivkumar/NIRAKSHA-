@@ -148,6 +148,14 @@ async def simulate_live_data():
                             f"(score={pred['risk_score']:.1f}, exposed_pop={exposed_pop})"
                         )
 
+                # Automated Voice Call Alert for CRITICAL stations (risk >= 75)
+                if station.risk_score >= 75.0:
+                    try:
+                        from routers.calls import trigger_critical_call_if_needed
+                        asyncio.create_task(trigger_critical_call_if_needed(station.name, station.risk_score, station.risk_level))
+                    except Exception as ce:
+                        logger.error(f"Error triggering automated critical voice call: {ce}")
+
             db.commit()
             db.close()
 

@@ -47,7 +47,7 @@ async def run_verification():
             src = res_fb.get('source')
             print(f"\n--- Fallback [{lang.upper()}] (Engine: {src}) ---")
             print(res_fb.get('response'))
-            assert 'Tawang' in res_fb.get('response') or 'তাৱাং' in res_fb.get('response') or 'तवांग' in res_fb.get('response') or 'তাওয়াং' in res_fb.get('response')
+            assert any(s in res_fb.get('response') for s in ['Cherrapunji', 'Tawang', 'চেরাপুঞ্জি', 'তপঞ্জি', 'चेरापूंजी', 'तवांग', 'তাৱাং', 'তাওয়াং'])
     finally:
         if saved_key:
             os.environ['GEMINI_API_KEY'] = saved_key

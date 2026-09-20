@@ -12,6 +12,9 @@ import ModelPerformance from './pages/ModelPerformance';
 import Prediction from './pages/Prediction';
 import Timeline from './pages/Timeline';
 import Resources from './pages/Resources';
+import WeatherForecast from './pages/WeatherForecast';
+import VoiceAlerts from './pages/VoiceAlerts';
+import Research from './pages/Research';
 
 function App() {
   return (
@@ -38,7 +41,10 @@ function App() {
           <Route path="stations/:id" element={<StationDetail />} />
           <Route path="model-performance" element={<ModelPerformance />} />
           <Route path="timeline" element={<Timeline />} />
+          <Route path="research" element={<Research />} />
           <Route path="resources" element={<Resources />} />
+          <Route path="weather" element={<WeatherForecast />} />
+          <Route path="calls" element={<VoiceAlerts />} />
         </Route>
 
         {/* Fallback */}

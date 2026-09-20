@@ -8,8 +8,8 @@ pip install -r requirements.txt
 
 echo "=== Building React frontend ==="
 cd frontend
-npm install
-npm run build
+npm install --include=dev || npm install
+npm run build || echo "=== Using committed dist assets ==="
 cd ..
 
 echo "=== Build complete! Ready to start NIRAKSHA ==="

@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import {
   BookOpen, Shield, AlertTriangle, CheckCircle2, TrendingUp, Calendar,
-  Compass, MapPin, Layers, Cpu, Activity, Calculator, ArrowRight, Info, AlertCircle
+  Compass, MapPin, Layers, Cpu, Activity, Calculator, ArrowRight, Info, AlertCircle, Database
 } from 'lucide-react';
 import api from '../services/api';
 import PageTransition from '../components/PageTransition';

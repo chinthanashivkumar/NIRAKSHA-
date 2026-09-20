@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, AlertCircle, Clock, Camera, CheckCircle, X, FileText, Upload, Shield } from 'lucide-react';
+import { MapPin, AlertCircle, Clock, Camera, CheckCircle, X, FileText, Upload, Shield, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { REPORT_TYPES } from '../constants/stations';

@@ -88,12 +88,11 @@ export default function LandingPage() {
 
           <div className="flex items-center gap-3">
             <Link
-              to="/dashboard"
-              id="open-command-center-nav"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded bg-[#2684FF] hover:bg-[#1E74E8] text-white text-xs font-mono font-semibold shadow-lg shadow-[rgba(38,132,255,0.25)] transition-all"
+              to="/research"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded bg-[#091321] hover:bg-[#0D1929] text-[#8EA1B8] hover:text-white text-xs font-mono border border-[rgba(148,163,184,0.2)] transition-all"
             >
-              <span>ENTER COMMAND CENTER</span>
-              <ArrowRight size={14} />
+              <BookOpen size={14} className="text-[#4DA3FF]" />
+              <span>RESEARCH & HISTORY</span>
             </Link>
           </div>
         </div>

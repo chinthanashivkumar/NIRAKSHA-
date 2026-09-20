@@ -99,6 +99,22 @@ graph TD
 - **Automated Team Assignment**: Recommends the nearest available NDRF team and relief camp for active high/critical warnings with operational reasoning.
 - **Deployment Logs**: Historical tracking of team mobilizations.
 
+### 7. Historical Landslide Analysis & Research (`/research`)
+- **NER Landslide Statistics (1998–2024)**: Aggregated data from NASA GLDAS and ISRO Landslide Atlas (847 recorded events, 1,247 fatalities, July peak at 34%, Meghalaya most affected at 28%).
+- **District Risk History Table**: Top 15 historical disaster hotspots across NER with event counts, fatality metrics, peak seasons, and real-time risk tiers.
+- **Monthly Distribution Analysis**: 12-month event frequency breakdown highlighting June–August peak danger monsoon period.
+- **Zero-History Zone Assessment**: Validates high susceptibility in unrecorded zones (e.g. NH-415, Ziro Valley, Upper Manipur) using physical slope, soil moisture, and rainfall parameters.
+
+### 8. Interactive Landslide Probability Calculator
+- **Physical Parameter Modeling**: Calculates landslide probability (0–100%) for any location in North-East India based on 9 terrain and hydrological factors (Slope Angle, Elevation, 24h & 7-Day Rainfall, Soil Saturation, NDVI, Road Proximity).
+- **Contributing Factor Breakdown**: Ranks the top 3 geotechnical triggers with percentage contributions and provides actionable disaster management recommendations.
+
+### 9. Seasonal Risk Calendar
+- **12-Month Hazard Calendar**: Color-coded risk mapping (Green, Amber, Red, Orange) with dynamic current-month indicator and event density indicators.
+
+### 10. Real-Time Calculation Explainer (Dashboard)
+- **Live Pipeline Transparency**: Collapsible dashboard panel displaying real-time Open-Meteo API ingestion, ISRO SRTM terrain extraction, sub-50ms Gradient Boosting inference, and automated SOP decisions.
+
 ---
 
 ## 🛠️ Technology Stack
@@ -210,6 +226,12 @@ python -m pytest tests/
 | `GET` | `/api/resources/assignment` | Tactical rescue team and relief camp assignment recommendation |
 | `POST` | `/api/resources/assign` | Deploy an assigned NDRF team |
 | `POST` | `/api/chat` | Google Gemini AI assistant (English, Hindi, Bengali, Assamese) |
+| `GET` | `/api/research/historical` | 1998–2024 NER historical landslide statistics and top 15 districts |
+| `GET` | `/api/research/monthly-distribution` | Monthly event frequency distribution (Jan–Dec) |
+| `GET` | `/api/research/susceptibility-zones` | High-risk zero-history terrain susceptibility zones |
+| `GET` | `/api/research/validation-comparison` | Model agreement metrics against ISRO Landslide Atlas 2023 |
+| `GET` | `/api/weather/forecast` | 7-day precipitation and hazard risk projection |
+| `GET` | `/api/calls/logs` | Automated emergency voice alert dispatch logs |
 
 ---
 

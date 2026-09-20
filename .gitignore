@@ -23,7 +23,10 @@ frontend/node_modules/
 *.db
 *.sqlite
 *.sqlite3
-uploads/
+uploads/*
+!uploads/.gitkeep
+!uploads/1789922977_OIP.jpeg
+!uploads/1788629482_test_crack.jpg
 scratch/
 
 # OS specific

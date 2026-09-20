@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models import Station, Evacuation, Alert
+from models import Station, Evacuation, Alert, CitizenReport
 import random
 from datetime import datetime, timedelta, timezone
 
@@ -154,4 +154,57 @@ def seed_database(db: Session):
             db.add(alert)
         db.commit()
         print("Historical alerts added.")
+
+    # Seed Field / Citizen Reports if empty
+    if not db.query(CitizenReport).first():
+        print("Adding baseline citizen field reports...")
+        sample_reports = [
+            {
+                "report_type": "slope_movement",
+                "description": "the landslide - Active slope movement observed on hillside above transport corridor.",
+                "severity": 3,
+                "photo_url": "/uploads/1789922977_OIP.jpeg",
+                "reporter_name": "Field Officer (Sikkim)",
+                "state": "Sikkim",
+                "district": "Gangtok",
+                "city": "Gangtok",
+                "pincode": "737101",
+                "landmark": "NH-10 Hillside",
+                "location": "Gangtok, Gangtok, Sikkim",
+                "timestamp": now - timedelta(hours=2)
+            },
+            {
+                "report_type": "crack",
+                "description": "Ground tension fracture 12cm width developing on upper slope embankment.",
+                "severity": 3,
+                "photo_url": "/uploads/1788629482_test_crack.jpg",
+                "reporter_name": "PWD Highway Patrol",
+                "state": "Sikkim",
+                "district": "Mangan",
+                "city": "Mangan",
+                "pincode": "737116",
+                "landmark": "Near North Sikkim Highway km 42",
+                "location": "Mangan, Mangan, Sikkim",
+                "timestamp": now - timedelta(hours=8)
+            },
+            {
+                "report_type": "rockfall",
+                "description": "Minor scree and boulder fall dislodged after continuous monsoon precipitation.",
+                "severity": 2,
+                "photo_url": "/uploads/1789922977_OIP.jpeg",
+                "reporter_name": "District Disaster Cell",
+                "state": "Meghalaya",
+                "district": "East Khasi Hills",
+                "city": "Cherrapunji",
+                "pincode": "793108",
+                "landmark": "Sohra-Shella Pass",
+                "location": "Cherrapunji, East Khasi Hills, Meghalaya",
+                "timestamp": now - timedelta(hours=14)
+            }
+        ]
+        for rep in sample_reports:
+            db.add(CitizenReport(**rep))
+        db.commit()
+        print("Baseline citizen field reports added.")
     print("Seeding complete.")
+

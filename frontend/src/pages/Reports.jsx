@@ -363,7 +363,7 @@ export default function Reports() {
                         <Camera size={11} className="text-blue-400" /> {t('Field Evidence Attachment')}:
                       </p>
                       <img
-                        src={`http://localhost:8000${r.photo_url}`}
+                        src={r.photo_url}
                         alt="Hazard Evidence"
                         className="max-h-36 rounded-md border border-[#1E293B] object-cover"
                         onError={(e) => { e.target.style.display = 'none'; }}

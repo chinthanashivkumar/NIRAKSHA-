@@ -5,7 +5,7 @@ import {
   ArrowRight, ChevronRight, CheckCircle2, Globe, Database, 
   Layers, Lock, ExternalLink, Compass, AlertTriangle, CloudRain, Droplets,
   Mountain, Crosshair, Radar, Terminal, MapPin, Gauge, Eye, TrendingUp,
-  Zap, LifeBuoy
+  Zap, LifeBuoy, BookOpen
 } from 'lucide-react';
 import api from '../services/api';
 import NortheastGeospatialMap from '../components/NortheastGeospatialMap';

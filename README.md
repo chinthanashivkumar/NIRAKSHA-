@@ -20,7 +20,7 @@ It combines:
 3. **Google Gemini AI Decision Support**: Context-aware multilingual chatbot (**English, Hindi, Bengali, Assamese**) backed by Google Gemini API with real-time station metrics and emergency protocol recommendations.
 4. **Automated Evacuation Routing**: Primary and alternative corridor clearance analysis, transit ETA calculations, and nearest relief camp allocation.
 5. **Citizen Hazard Reporting**: Ground field evidence archival for human and authority inspection and emergency validation (photos treated purely as field evidence without claimed computer vision ML).
-6. **Rule-Based Priority Response**: Multi-criteria decision-support ranking matching active alerts with available NDRF rescue teams and relief camps based on risk score, demographic vulnerability, road blockages, and elapsed time.
+6. **Rule-Based Priority Response** : Multi-criteria decision-support ranking matching active alerts with available NDRF rescue teams and relief camps based on risk score, demographic vulnerability, road blockages, and elapsed time.
 
 ---
 
